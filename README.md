@@ -4,7 +4,7 @@ A parser for sqlite create table sql statements.
 SQLite is a very powerful software but it lacks an easy way to extract complete information about table and columns constraints. The built-in sql pragma:  
 ```PRAGMA schema.table_info(table-name);```  
 ```PRAGMA foreign_key_list(table-name);```  
-provide incomplete information and a manual parsing is required in order to extract some useful information.
+provide incomplete information and a manual parsing is required in order to extract more useful information.
 
 CREATE TABLE syntax diagrams can be found on the official [sqlite website](http://www.sqlite.org/lang_createtable.html).
 
