@@ -1,0 +1,257 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A9B0409D1C870E6E0001459D /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = A9B0409A1C870E6E0001459D /* main.c */; };
+		A9B0409E1C870E6E0001459D /* sql3parse_debug.c in Sources */ = {isa = PBXBuildFile; fileRef = A9B0409B1C870E6E0001459D /* sql3parse_debug.c */; };
+		A9B040A11C870E750001459D /* sql3parse_table.c in Sources */ = {isa = PBXBuildFile; fileRef = A9B0409F1C870E750001459D /* sql3parse_table.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A9B67B9C1C70691E00B772A9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A9B0409A1C870E6E0001459D /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = test/main.c; sourceTree = SOURCE_ROOT; };
+		A9B0409B1C870E6E0001459D /* sql3parse_debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sql3parse_debug.c; path = test/sql3parse_debug.c; sourceTree = SOURCE_ROOT; };
+		A9B0409C1C870E6E0001459D /* sql3parse_debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sql3parse_debug.h; path = test/sql3parse_debug.h; sourceTree = SOURCE_ROOT; };
+		A9B0409F1C870E750001459D /* sql3parse_table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sql3parse_table.c; path = src/sql3parse_table.c; sourceTree = SOURCE_ROOT; };
+		A9B040A01C870E750001459D /* sql3parse_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sql3parse_table.h; path = src/sql3parse_table.h; sourceTree = SOURCE_ROOT; };
+		A9B67B9E1C70691E00B772A9 /* CreateTableParser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CreateTableParser; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A9B67B9B1C70691E00B772A9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A9B67B951C70691E00B772A9 = {
+			isa = PBXGroup;
+			children = (
+				A9B67BA01C70691E00B772A9 /* CreateTableParser */,
+				A9B67B9F1C70691E00B772A9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A9B67B9F1C70691E00B772A9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A9B67B9E1C70691E00B772A9 /* CreateTableParser */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A9B67BA01C70691E00B772A9 /* CreateTableParser */ = {
+			isa = PBXGroup;
+			children = (
+				A9B0409A1C870E6E0001459D /* main.c */,
+				A9B0409F1C870E750001459D /* sql3parse_table.c */,
+				A9B040A01C870E750001459D /* sql3parse_table.h */,
+				A9B0409B1C870E6E0001459D /* sql3parse_debug.c */,
+				A9B0409C1C870E6E0001459D /* sql3parse_debug.h */,
+			);
+			path = CreateTableParser;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A9B67B9D1C70691E00B772A9 /* CreateTableParser */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A9B67BA51C70691E00B772A9 /* Build configuration list for PBXNativeTarget "CreateTableParser" */;
+			buildPhases = (
+				A9B67B9A1C70691E00B772A9 /* Sources */,
+				A9B67B9B1C70691E00B772A9 /* Frameworks */,
+				A9B67B9C1C70691E00B772A9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CreateTableParser;
+			productName = CreateTableParser;
+			productReference = A9B67B9E1C70691E00B772A9 /* CreateTableParser */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A9B67B961C70691E00B772A9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0720;
+				ORGANIZATIONNAME = Creolabs;
+				TargetAttributes = {
+					A9B67B9D1C70691E00B772A9 = {
+						CreatedOnToolsVersion = 7.2.1;
+					};
+				};
+			};
+			buildConfigurationList = A9B67B991C70691E00B772A9 /* Build configuration list for PBXProject "CreateTableParser" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = A9B67B951C70691E00B772A9;
+			productRefGroup = A9B67B9F1C70691E00B772A9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A9B67B9D1C70691E00B772A9 /* CreateTableParser */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A9B67B9A1C70691E00B772A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A9B0409E1C870E6E0001459D /* sql3parse_debug.c in Sources */,
+				A9B0409D1C870E6E0001459D /* main.c in Sources */,
+				A9B040A11C870E750001459D /* sql3parse_table.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A9B67BA31C70691E00B772A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A9B67BA41C70691E00B772A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A9B67BA61C70691E00B772A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A9B67BA71C70691E00B772A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A9B67B991C70691E00B772A9 /* Build configuration list for PBXProject "CreateTableParser" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A9B67BA31C70691E00B772A9 /* Debug */,
+				A9B67BA41C70691E00B772A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A9B67BA51C70691E00B772A9 /* Build configuration list for PBXNativeTarget "CreateTableParser" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A9B67BA61C70691E00B772A9 /* Debug */,
+				A9B67BA71C70691E00B772A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A9B67B961C70691E00B772A9 /* Project object */;
+}
