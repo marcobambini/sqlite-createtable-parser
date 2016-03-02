@@ -1,7 +1,7 @@
 # SQLite CREATE TABLE parser
-SQLite is a very powerful software but it lacks an easy way to extract complete information about table and columns constraints.
+A parser for sqlite create table sql statements.
 
-The built-in sql pragma:
+SQLite is a very powerful software but it lacks an easy way to extract complete information about table and columns constraints. The built-in sql pragma:
 ```PRAGMA schema.table_info(table-name);```
 and
 ```PRAGMA foreign_key_list(table-name);```
