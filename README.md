@@ -1,10 +1,9 @@
 # SQLite CREATE TABLE parser
 A parser for sqlite create table sql statements.
 
-SQLite is a very powerful software but it lacks an easy way to extract complete information about table and columns constraints. The built-in sql pragma:
-```PRAGMA schema.table_info(table-name);```
-and
-```PRAGMA foreign_key_list(table-name);```
+SQLite is a very powerful software but it lacks an easy way to extract complete information about table and columns constraints. The built-in sql pragma:  
+```PRAGMA schema.table_info(table-name);```  
+```PRAGMA foreign_key_list(table-name);```  
 provide incomplete information and a manual parsing is required in order to extract some useful information.
 
 CREATE TABLE syntax diagrams can be found on the official [sqlite website](http://www.sqlite.org/lang_createtable.html).
@@ -17,7 +16,7 @@ sql is the CREATE TABLE sql statement
 length is maximum length of sql in bytes or if 0 is passed then strlen is used to determine it
 error is the returned error code (can be NULL)
 ```
-**sql3table** is an opaque struct that you can introspect using the sql3table* public functions.
+**sql3table** is an opaque struct that you can introspect using the sql3table* public functions.  
 The file sql3parse_debug.c shows you how to use all the API.
 
 
