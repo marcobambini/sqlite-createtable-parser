@@ -7,7 +7,7 @@ and
 ```PRAGMA foreign_key_list(table-name);```
 provide incomplete information and a manual parsing is required in order to extract some useful information.
 
-CREATE TABLE syntax diagrams can be found on the official [sqlite website].
+CREATE TABLE syntax diagrams can be found on the official [sqlite website](http://www.sqlite.org/lang_createtable.html).
 
 **Current Limitations**
 - CREATE TABLE AS select-stmt syntax is not supported.
