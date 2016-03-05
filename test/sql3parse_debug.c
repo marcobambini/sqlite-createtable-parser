@@ -42,6 +42,15 @@ static const char *sql3fk_deftype_str (sql3fk_deftype clause) {
 	}
 }
 
+static const char *sql3constraint_type_str (sql3constraint_type type) {
+	switch (type) {
+		case SQL3TABLECONSTRAINT_PRIMARYKEY: return "PRIMARYKEY";
+		case SQL3TABLECONSTRAINT_UNIQUE: return "UNIQUE";
+		case SQL3TABLECONSTRAINT_CHECK: return "CHECK";
+		case SQL3TABLECONSTRAINT_FOREIGNKEY: return "FOREIGNKEY";
+	}
+}
+
 #pragma mark - Dump Code -
 
 static void sql3string_dump (sql3string *ptr, const char *label) {
@@ -153,6 +162,55 @@ static void sql3column_dump (sql3column *column) {
 	sql3foreignkey_dump(fk);
 }
 
+static void sql3tableconstraint_dump (sql3tableconstraint *constraint) {
+	// constraint type
+	sql3constraint_type type = sql3table_constraint_type(constraint);
+	printf("Constraint Type: %s\n", sql3constraint_type_str(type));
+	
+	sql3string *ptr = sql3table_constraint_name(constraint);
+	sql3string_dump(ptr, "Constraint Name");
+	
+	if ((type == SQL3TABLECONSTRAINT_PRIMARYKEY) || (type == SQL3TABLECONSTRAINT_UNIQUE)) {
+		// indexed columns
+		size_t num_idx = sql3table_constraint_num_idxcolumns(constraint);
+		if (num_idx) {
+			printf("Num Indexed Columns: %zu\n", num_idx);
+			for (size_t i=0; i<num_idx; ++i) {
+				sql3idxcolumn *idxcolumn = sql3table_constraint_get_idxcolumn(constraint, i);
+				printf("\n== IDX COLUMN %zu ==\n", i);
+				sql3idxcolumn_dump(idxcolumn);
+			}
+		}
+		
+		// conflict clause
+		sql3conflict_clause clause = sql3table_constraint_conflict_clause(constraint);
+		if (clause != SQL3CONFLICT_NONE)
+			printf("Conflict Cause: %s\n", sql3conflict_clause_str(clause));
+		
+		return;
+	}
+	
+	if (type == SQL3TABLECONSTRAINT_CHECK) {
+		ptr = sql3table_constraint_check_expr(constraint);
+		sql3string_dump(ptr, "Check Expr");
+		
+		return;
+	}
+	
+	if (type == SQL3TABLECONSTRAINT_FOREIGNKEY) {
+		// foreign key columns
+		size_t num_fk = sql3table_constraint_num_fkcolumns(constraint);
+		for (size_t i=0; i<num_fk; ++i) {
+			ptr = sql3table_constraint_get_fkcolumn(constraint, i);
+			sql3string_dump(ptr, "Foreign Key Column");
+		}
+		
+		// foreign key clause
+		sql3foreignkey *fk = sql3table_constraint_foreignkey_clause (constraint);
+		sql3foreignkey_dump(fk);
+	}
+}
+
 #pragma mark - Public -
 
 void table_dump (sql3table *table) {
@@ -181,39 +239,11 @@ void table_dump (sql3table *table) {
 	}
 	
 	// table constraints
-	printf("\n== TABLE CONSTRAINTS ==\n");
-	ptr = sql3table_constraint_name(table);
-	sql3string_dump(ptr, "Constraint Name");
-	
-	// constraint type
-	sql3table_constraint type = sql3table_constraint_type(table);
-	if (type != SQL3TABLECONSTRAINT_NONE)
-		printf("Constraint Type: %s\n", (type == SQL3TABLECONSTRAINT_PRIMARYKEY) ? "PRIMARY KEY" : "UNIQUE");
-	
-	// indexed columns
-	size_t num_idx = sql3table_constraint_num_idxcolumns(table);
-	if (num_idx) {
-		printf("Num Indexed Columns: %zu\n", num_idx);
-		for (size_t i=0; i<num_idx; ++i) {
-			sql3idxcolumn *idxcolumn = sql3table_constraint_get_idxcolumn(table, i);
-			printf("\n== IDX COLUMN %zu ==\n", i);
-			sql3idxcolumn_dump(idxcolumn);
-		}
+	size_t num_constraint = sql3table_num_constraints(table);
+	printf("Num Table Constraint: %zu\n", num_constraint);
+	for (size_t i=0; i<num_constraint; ++i) {
+		sql3tableconstraint *constraint = sql3table_get_constraint(table, i);
+		printf("\n== TABLE CONSTRAINT %zu ==\n", i);
+		sql3tableconstraint_dump(constraint);
 	}
-		
-	// conflict clause
-	sql3conflict_clause clause = sql3table_constraint_conflict_clause(table);
-	if (clause != SQL3CONFLICT_NONE)
-		printf("Conflict Cause: %s\n", sql3conflict_clause_str(clause));
-	
-	// foreign key columns
-	size_t num_fk = sql3table_constraint_num_fkcolumns(table);
-	for (size_t i=0; i<num_fk; ++i) {
-		ptr = sql3table_constraint_get_fkcolumn(table, i);
-		sql3string_dump(ptr, "Foreign Key Column");
-	}
-	
-	// foreign key clause
-	sql3foreignkey *fk = sql3table_constraint_foreignkey_clause (table);
-	sql3foreignkey_dump(fk);
 }
