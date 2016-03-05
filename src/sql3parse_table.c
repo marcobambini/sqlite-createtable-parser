@@ -991,10 +991,30 @@ void sql3table_free (sql3table *table) {
 	// free columns
 	for (size_t i=0; i<table->num_columns; ++i) {
 		sql3column *column = table->columns[i];
-		if (column->foreignkey_clause) SQL3FREE(column->foreignkey_clause);
+		if (column->foreignkey_clause) {
+			if (column->foreignkey_clause->column_name) SQL3FREE(column->foreignkey_clause->column_name);
+			SQL3FREE(column->foreignkey_clause);
+		}
 		SQL3FREE(column);
 	}
-	SQL3FREE(table->columns);
+	if (table->columns) SQL3FREE(table->columns);
+	
+	// free table constraints
+	for (size_t i=0; i<table->num_constraint; ++i) {
+		sql3tableconstraint *constraint = table->constraints[i];
+		if ((constraint->type == SQL3TABLECONSTRAINT_PRIMARYKEY) || (constraint->type == SQL3TABLECONSTRAINT_UNIQUE)) {
+			if (constraint->indexed_columns) SQL3FREE(constraint->indexed_columns);
+		} else if (constraint->type == SQL3TABLECONSTRAINT_FOREIGNKEY) {
+			if (constraint->foreignkey_name) SQL3FREE(constraint->foreignkey_name);
+			if (constraint->foreignkey_clause) {
+				if (constraint->foreignkey_clause->column_name) SQL3FREE(constraint->foreignkey_clause->column_name);
+				SQL3FREE(constraint->foreignkey_clause);
+			}
+		}
+		SQL3FREE(constraint);
+	}
+	if (table->constraints) SQL3FREE(table->constraints);
+	
 	SQL3FREE(table);
 }
 
