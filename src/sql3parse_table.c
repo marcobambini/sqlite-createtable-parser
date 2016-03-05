@@ -117,6 +117,7 @@ typedef struct {
 #define NEXT					(state->buffer[state->offset++])
 #define SKIP_ONE				++state->offset;
 #define CHECK_STR(s)			if (!s.ptr) return NULL
+#define CHECK_IDX(idx1,idx2)	if (idx1>=idx2) return NULL
 
 #pragma mark - Public String Functions -
 
@@ -972,7 +973,7 @@ size_t sql3table_num_columns (sql3table *table) {
 }
 
 sql3column *sql3table_get_column (sql3table *table, size_t index) {
-	if (index > table->num_columns) return NULL;
+	CHECK_IDX(index, table->num_columns);
 	return table->columns[index];
 }
 
@@ -981,7 +982,7 @@ size_t sql3table_num_constraints (sql3table *table) {
 }
 
 sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index) {
-	if (index > table->num_constraint) return NULL;
+	CHECK_IDX(index, table->num_constraint);
 	return table->constraints[index];
 }
 
@@ -1036,7 +1037,7 @@ size_t sql3table_constraint_num_idxcolumns (sql3tableconstraint *tconstraint) {
 
 sql3idxcolumn *sql3table_constraint_get_idxcolumn (sql3tableconstraint *tconstraint, size_t index) {
 	if ((tconstraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) && (tconstraint->type != SQL3TABLECONSTRAINT_UNIQUE)) return NULL;
-	if (index > tconstraint->num_indexed) return NULL;
+	CHECK_IDX(index, tconstraint->num_indexed);
 	return &tconstraint->indexed_columns[index];
 }
 
@@ -1058,7 +1059,7 @@ size_t sql3table_constraint_num_fkcolumns (sql3tableconstraint *tconstraint) {
 
 sql3string *sql3table_constraint_get_fkcolumn (sql3tableconstraint *tconstraint, size_t index) {
 	if (tconstraint->type != SQL3TABLECONSTRAINT_FOREIGNKEY) return NULL;
-	if (index > tconstraint->foreignkey_num) return NULL;
+	CHECK_IDX(index, tconstraint->foreignkey_num);
 	CHECK_STR(tconstraint->foreignkey_name[index]);
 	return &(tconstraint->foreignkey_name[index]);
 }
