@@ -25,19 +25,19 @@ extern "C" {
 #endif
 
 // Redefine macros here if you want to use a custom allocator
-#define SQL3MALLOC(size)			malloc(size)
-#define SQL3MALLOC0(size)			calloc(1,size)
-#define SQL3FREE(ptr)				free(ptr)
+#define SQL3MALLOC(size)		malloc(size)
+#define SQL3MALLOC0(size)		calloc(1,size)
+#define SQL3FREE(ptr)			free(ptr)
 #define SQL3REALLOC(ptr,size)		realloc(ptr,size)
 
 // Opaque types that hold table, column and foreign key details
-typedef struct sql3table			sql3table;
-typedef struct sql3column			sql3column;
+typedef struct sql3table		sql3table;
+typedef struct sql3column		sql3column;
 typedef struct sql3idxcolumn		sql3idxcolumn;
 typedef struct sql3foreignkey		sql3foreignkey;
 typedef struct sql3tableconstraint	sql3tableconstraint;
-typedef struct sql3string			sql3string;
-typedef uint16_t					sql3char;
+typedef struct sql3string		sql3string;
+typedef uint16_t			sql3char;
 	
 typedef enum {
 	SQL3ERROR_NONE,
@@ -88,66 +88,66 @@ typedef enum {
 } sql3constraint_type;
 	
 // Main http://www.sqlite.org/lang_createtable.html
-sql3table				*sql3parse_table (const char *sql, size_t length, sql3error_code *error);
+sql3table		*sql3parse_table (const char *sql, size_t length, sql3error_code *error);
 
 // Table
-sql3string				*sql3table_schema (sql3table *table);
-sql3string				*sql3table_name (sql3table *table);
-bool					sql3table_is_temporary (sql3table *table);
-bool					sql3table_is_ifnotexists (sql3table *table);
-bool					sql3table_is_withoutrowid (sql3table *table);
-size_t					sql3table_num_columns (sql3table *table);
-sql3column				*sql3table_get_column (sql3table *table, size_t index);
-size_t					sql3table_num_constraints (sql3table *table);
-sql3tableconstraint		*sql3table_get_constraint (sql3table *table, size_t index);
-void					sql3table_free (sql3table *table);
+sql3string		*sql3table_schema (sql3table *table);
+sql3string		*sql3table_name (sql3table *table);
+bool			sql3table_is_temporary (sql3table *table);
+bool			sql3table_is_ifnotexists (sql3table *table);
+bool			sql3table_is_withoutrowid (sql3table *table);
+size_t			sql3table_num_columns (sql3table *table);
+sql3column		*sql3table_get_column (sql3table *table, size_t index);
+size_t			sql3table_num_constraints (sql3table *table);
+sql3tableconstraint	*sql3table_get_constraint (sql3table *table, size_t index);
+void			sql3table_free (sql3table *table);
 	
 // Table Constraint
-sql3string				*sql3table_constraint_name (sql3tableconstraint *tconstraint);
-sql3constraint_type		sql3table_constraint_type (sql3tableconstraint *tconstraint);
-size_t					sql3table_constraint_num_idxcolumns (sql3tableconstraint *tconstraint);
-sql3idxcolumn			*sql3table_constraint_get_idxcolumn (sql3tableconstraint *tconstraint, size_t index);
-sql3conflict_clause		sql3table_constraint_conflict_clause (sql3tableconstraint *tconstraint);
-sql3string				*sql3table_constraint_check_expr (sql3tableconstraint *tconstraint);
-size_t					sql3table_constraint_num_fkcolumns (sql3tableconstraint *tconstraint);
-sql3string				*sql3table_constraint_get_fkcolumn (sql3tableconstraint *tconstraint, size_t index);
-sql3foreignkey			*sql3table_constraint_foreignkey_clause (sql3tableconstraint *tconstraint);
+sql3string		*sql3table_constraint_name (sql3tableconstraint *tconstraint);
+sql3constraint_type	sql3table_constraint_type (sql3tableconstraint *tconstraint);
+size_t			sql3table_constraint_num_idxcolumns (sql3tableconstraint *tconstraint);
+sql3idxcolumn		*sql3table_constraint_get_idxcolumn (sql3tableconstraint *tconstraint, size_t index);
+sql3conflict_clause	sql3table_constraint_conflict_clause (sql3tableconstraint *tconstraint);
+sql3string		*sql3table_constraint_check_expr (sql3tableconstraint *tconstraint);
+size_t			sql3table_constraint_num_fkcolumns (sql3tableconstraint *tconstraint);
+sql3string		*sql3table_constraint_get_fkcolumn (sql3tableconstraint *tconstraint, size_t index);
+sql3foreignkey		*sql3table_constraint_foreignkey_clause (sql3tableconstraint *tconstraint);
 
 // Column
-sql3string				*sql3column_name (sql3column *column);
-sql3string				*sql3column_type (sql3column *column);
-sql3string				*sql3column_length (sql3column *column);
-sql3string				*sql3column_constraint_name (sql3column *column);
-bool					sql3column_is_primarykey (sql3column *column);
-bool					sql3column_is_autoincrement (sql3column *column);
-bool					sql3column_is_notnull (sql3column *column);
-bool					sql3column_is_unique (sql3column *column);
-sql3order_clause		sql3column_pk_order (sql3column *column);
-sql3conflict_clause		sql3column_pk_conflictclause (sql3column *column);
-sql3conflict_clause		sql3column_notnull_conflictclause (sql3column *column);
-sql3conflict_clause		sql3column_unique_conflictclause (sql3column *column);
-sql3string				*sql3column_check_expr (sql3column *column);
-sql3string				*sql3column_default_expr (sql3column *column);
-sql3string				*sql3column_collate_name (sql3column *column);
-sql3foreignkey			*sql3column_foreignkey_clause (sql3column *column);
+sql3string		*sql3column_name (sql3column *column);
+sql3string		*sql3column_type (sql3column *column);
+sql3string		*sql3column_length (sql3column *column);
+sql3string		*sql3column_constraint_name (sql3column *column);
+bool			sql3column_is_primarykey (sql3column *column);
+bool			sql3column_is_autoincrement (sql3column *column);
+bool			sql3column_is_notnull (sql3column *column);
+bool			sql3column_is_unique (sql3column *column);
+sql3order_clause	sql3column_pk_order (sql3column *column);
+sql3conflict_clause	sql3column_pk_conflictclause (sql3column *column);
+sql3conflict_clause	sql3column_notnull_conflictclause (sql3column *column);
+sql3conflict_clause	sql3column_unique_conflictclause (sql3column *column);
+sql3string		*sql3column_check_expr (sql3column *column);
+sql3string		*sql3column_default_expr (sql3column *column);
+sql3string		*sql3column_collate_name (sql3column *column);
+sql3foreignkey		*sql3column_foreignkey_clause (sql3column *column);
 	
 // Foreign Key
-sql3string				*sql3foreignkey_table (sql3foreignkey *fk);
-size_t					sql3foreignkey_num_columns (sql3foreignkey *fk);
-sql3string				*sql3foreignkey_get_column (sql3foreignkey *fk, size_t index);
-sql3fk_action			sql3foreignkey_ondelete_action (sql3foreignkey *fk);
-sql3fk_action			sql3foreignkey_onupdate_action (sql3foreignkey *fk);
-sql3string				*sql3foreignkey_match (sql3foreignkey *fk);
-sql3fk_deftype			sql3foreignkey_deferrable (sql3foreignkey *fk);
+sql3string		*sql3foreignkey_table (sql3foreignkey *fk);
+size_t			sql3foreignkey_num_columns (sql3foreignkey *fk);
+sql3string		*sql3foreignkey_get_column (sql3foreignkey *fk, size_t index);
+sql3fk_action		sql3foreignkey_ondelete_action (sql3foreignkey *fk);
+sql3fk_action		sql3foreignkey_onupdate_action (sql3foreignkey *fk);
+sql3string		*sql3foreignkey_match (sql3foreignkey *fk);
+sql3fk_deftype		sql3foreignkey_deferrable (sql3foreignkey *fk);
 
 // Indexed Column
-sql3string				*sql3idxcolumn_name (sql3idxcolumn *idxcolumn);
-sql3string				*sql3idxcolumn_collate (sql3idxcolumn *idxcolumn);
-sql3order_clause		sql3idxcolumn_order (sql3idxcolumn *idxcolumn);
+sql3string		*sql3idxcolumn_name (sql3idxcolumn *idxcolumn);
+sql3string		*sql3idxcolumn_collate (sql3idxcolumn *idxcolumn);
+sql3order_clause	sql3idxcolumn_order (sql3idxcolumn *idxcolumn);
 	
 // String
-const char				*sql3string_ptr (sql3string *s, size_t *length);
-const char				*sql3string_cstring (sql3string *s);
+const char		*sql3string_ptr (sql3string *s, size_t *length);
+const char		*sql3string_cstring (sql3string *s);
 	
 #ifdef __cplusplus
 }  // end of the 'extern "C"' block
