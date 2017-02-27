@@ -30,96 +30,96 @@ typedef enum {
 } sql3token_t;
 
 struct sql3string {
-	const char					*ptr;					// ptr to first byte of the string
-	size_t						length;					// string length
+	const char	*ptr;					// ptr to first byte of the string
+	size_t		length;					// string length
 };
 
 struct sql3foreignkey {
-	sql3string					table;					// foreign key table
-	size_t						num_columns;
-	sql3string					*column_name;
-	sql3fk_action				on_delete;
-	sql3fk_action				on_update;
-	sql3string					match;
-	sql3fk_deftype				deferrable;
+	sql3string	table;					// foreign key table
+	size_t		num_columns;
+	sql3string	*column_name;
+	sql3fk_action	on_delete;
+	sql3fk_action	on_update;
+	sql3string	match;
+	sql3fk_deftype	deferrable;
 };
 
 struct sql3column {
-	sql3string					name;					// column name
-	sql3string					type;					// column type (can be NULL)
-	sql3string					length;					// column length (can be NULL)
-	sql3string					constraint_name;		// constraint name (can be NULL)
-	bool						is_primarykey;			// primary key flag
-	bool						is_autoincrement;		// autoincrement flag (only if is_primarykey is true)
-	bool						is_notnull;				// not null flag
-	bool						is_unique;				// is unique flag
-	sql3order_clause			pk_order;				// primary key order
-	sql3conflict_clause			pk_conflictclause;		// primary key conflit clause
-	sql3conflict_clause			notnull_conflictclause;	// not null conflit clause
-	sql3conflict_clause			unique_conflictclause;	// unique conflit clause
-	sql3string					check_expr;				// check expression (can be NULL)
-	sql3string					default_expr;			// default expression (can be NULL)
-	sql3string					collate_name;			// collate name (can be NULL)
-	sql3foreignkey				*foreignkey_clause;		// foreign key clause (can be NULL)
+	sql3string		name;				// column name
+	sql3string		type;				// column type (can be NULL)
+	sql3string		length;				// column length (can be NULL)
+	sql3string		constraint_name;		// constraint name (can be NULL)
+	bool			is_primarykey;			// primary key flag
+	bool			is_autoincrement;		// autoincrement flag (only if is_primarykey is true)
+	bool			is_notnull;			// not null flag
+	bool			is_unique;			// is unique flag
+	sql3order_clause	pk_order;			// primary key order
+	sql3conflict_clause	pk_conflictclause;		// primary key conflit clause
+	sql3conflict_clause	notnull_conflictclause;		// not null conflit clause
+	sql3conflict_clause	unique_conflictclause;		// unique conflit clause
+	sql3string		check_expr;			// check expression (can be NULL)
+	sql3string		default_expr;			// default expression (can be NULL)
+	sql3string		collate_name;			// collate name (can be NULL)
+	sql3foreignkey		*foreignkey_clause;		// foreign key clause (can be NULL)
 };
 
 struct sql3tableconstraint {
-	sql3constraint_type			type;					// table constraint type
-	sql3string					name;					// constraint name (can be NULL)
+	sql3constraint_type	type;				// table constraint type
+	sql3string		name;				// constraint name (can be NULL)
 	union {
-		struct {										// if type SQL3TABLECONSTRAINT_PRIMARYKEY or SQL3TABLECONSTRAINT_UNIQUE
-			size_t				num_indexed;			// number of indexed columns
-			sql3idxcolumn		*indexed_columns;		// array fo indexed columns
-			sql3conflict_clause	conflict_clause;		// conflict clause
+		struct {	// if type SQL3TABLECONSTRAINT_PRIMARYKEY or SQL3TABLECONSTRAINT_UNIQUE
+			size_t			num_indexed;		// number of indexed columns
+			sql3idxcolumn		*indexed_columns;	// array fo indexed columns
+			sql3conflict_clause	conflict_clause;	// conflict clause
 		};
-														// if type SQL3TABLECONSTRAINT_CHECK
-		sql3string				check_expr;				// check expression (always NULL in this version)
+				// if type SQL3TABLECONSTRAINT_CHECK
+		sql3string	check_expr;				// check expression (always NULL in this version)
 		
-		struct {										// if type SQL3TABLECONSTRAINT_FOREIGNKEY
-			size_t				foreignkey_num;			// number of columns defined in foreign key
-			sql3string			*foreignkey_name;		// column names in the foreign key
-			sql3foreignkey		*foreignkey_clause;		// foreign key clause (can be NULL)
+		struct {	// if type SQL3TABLECONSTRAINT_FOREIGNKEY
+			size_t			foreignkey_num;		// number of columns defined in foreign key
+			sql3string		*foreignkey_name;	// column names in the foreign key
+			sql3foreignkey		*foreignkey_clause;	// foreign key clause (can be NULL)
 		};
 	};
 };
 
 struct sql3table {
-	sql3string					name;					// table name
-	sql3string					schema;					// schema name (can be NULL)
-	bool						is_temporary;			// flag set if table is temporary
-	bool						is_ifnotexists;			// flag set if table is created with a IF NOT EXISTS clause
-	bool						is_withoutrowid;		// flag set if table is created with a WITHOUT ROWID clause
-	size_t						num_columns;			// number of columns defined in the table
-	sql3column					**columns;				// array of columns defined in the table
-	size_t						num_constraint;			// number of table constraint
-	sql3tableconstraint			**constraints;			// array of table constraints
+	sql3string			name;				// table name
+	sql3string			schema;				// schema name (can be NULL)
+	bool				is_temporary;			// flag set if table is temporary
+	bool				is_ifnotexists;			// flag set if table is created with a IF NOT EXISTS clause
+	bool				is_withoutrowid;		// flag set if table is created with a WITHOUT ROWID clause
+	size_t				num_columns;			// number of columns defined in the table
+	sql3column			**columns;			// array of columns defined in the table
+	size_t				num_constraint;			// number of table constraint
+	sql3tableconstraint		**constraints;			// array of table constraints
 };
 
 struct sql3idxcolumn {
-	sql3string					name;					// column name
-	sql3string					collate_name;			// collate name (can be NULL)
-	sql3order_clause			order;					// order
+	sql3string			name;				// column name
+	sql3string			collate_name;			// collate name (can be NULL)
+	sql3order_clause		order;				// order
 };
 
 typedef struct {
-	const char					*buffer;				// original sql
-	size_t						size;					// size of the input buffer
-	size_t						offset;					// offset inside the input buffer
-	sql3string					identifier;				// latest identifier found by the lexer
-	sql3table					*table;					// table definition
+	const char			*buffer;			// original sql
+	size_t				size;				// size of the input buffer
+	size_t				offset;				// offset inside the input buffer
+	sql3string			identifier;			// latest identifier found by the lexer
+	sql3table			*table;				// table definition
 } sql3state;
 
-#pragma mark Macros -
+// MARK: Macros -
 
-#define IS_EOF					(state->offset == state->size)
-#define PEEK					(state->buffer[state->offset])
-#define PEEK2					(state->buffer[state->offset+1])
-#define NEXT					(state->buffer[state->offset++])
-#define SKIP_ONE				++state->offset;
+#define IS_EOF				(state->offset == state->size)
+#define PEEK				(state->buffer[state->offset])
+#define PEEK2				(state->buffer[state->offset+1])
+#define NEXT				(state->buffer[state->offset++])
+#define SKIP_ONE			++state->offset;
 #define CHECK_STR(s)			if (!s.ptr) return NULL
-#define CHECK_IDX(idx1,idx2)	if (idx1>=idx2) return NULL
+#define CHECK_IDX(idx1,idx2)		if (idx1>=idx2) return NULL
 
-#pragma mark - Public String Functions -
+// MARK: - Public String Functions -
 
 const char *sql3string_ptr (sql3string *s, size_t *length) {
 	if (length) *length = s->length;
@@ -137,7 +137,7 @@ const char *sql3string_cstring (sql3string *s) {
 }
 
 
-#pragma mark - Internal Utils -
+// MARK: - Internal Utils -
 
 static int str_nocasencmp(const char *s1, const char *s2, size_t n) {
 	while(n > 0 && tolower((unsigned char)*s1) == tolower((unsigned char)*s2)) {
@@ -210,7 +210,7 @@ static bool token_is_table_constraint (sql3token_t t) {
 			(t == TOK_CHECK) || (t == TOK_FOREIGN));
 }
 
-#pragma mark - Internal Lexer -
+// MARK: - Internal Lexer -
 
 static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 	
@@ -316,7 +316,7 @@ sql3token_t sql3lexer_comment (sql3state *state) {
 	return TOK_COMMENT;
 }
 
-sql3token_t	sql3lexer_punctuation (sql3state *state) {
+sql3token_t sql3lexer_punctuation (sql3state *state) {
 	sql3char c = NEXT;
 	
 	switch (c) {
@@ -396,7 +396,7 @@ static sql3token_t sql3lexer_peek (sql3state *state) {
 	return token;
 }
 
-#pragma mark - Internal Parser -
+// MARK: - Internal Parser -
 
 static sql3error_code sql3parse_optionalorder (sql3state *state, sql3order_clause *clause) {
 	sql3token_t token = sql3lexer_peek(state);
@@ -1019,7 +1019,7 @@ void sql3table_free (sql3table *table) {
 	SQL3FREE(table);
 }
 
-#pragma mark - Public Table Constraint Functions -
+// MARK: - Public Table Constraint Functions -
 
 sql3string *sql3table_constraint_name (sql3tableconstraint *tconstraint) {
 	CHECK_STR(tconstraint->name);
@@ -1069,7 +1069,7 @@ sql3foreignkey *sql3table_constraint_foreignkey_clause (sql3tableconstraint *tco
 	return tconstraint->foreignkey_clause;
 }
 
-#pragma mark - Public Column Functions -
+// MARK: - Public Column Functions -
 
 sql3string *sql3column_name (sql3column *column) {
 	CHECK_STR(column->name);
@@ -1142,7 +1142,7 @@ sql3foreignkey *sql3column_foreignkey_clause (sql3column *column) {
 	return column->foreignkey_clause;
 }
 
-#pragma mark - Public Foreign Key Functions -
+// MARK: - Public Foreign Key Functions -
 
 sql3string *sql3foreignkey_table (sql3foreignkey *fk) {
 	CHECK_STR(fk->table);
@@ -1177,7 +1177,7 @@ sql3fk_deftype sql3foreignkey_deferrable (sql3foreignkey *fk) {
 	return fk->deferrable;
 }
 
-#pragma mark - Public Index Column Functions -
+// MARK: - Public Index Column Functions -
 
 sql3string *sql3idxcolumn_name (sql3idxcolumn *idxcolumn) {
 	CHECK_STR(idxcolumn->name);
@@ -1193,7 +1193,7 @@ sql3order_clause sql3idxcolumn_order (sql3idxcolumn *idxcolumn) {
 	return idxcolumn->order;
 }
 
-#pragma mark - Main Entrypoint -
+// MARK: - Main Entrypoint -
 
 sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *error) {
 	// initial sanity check
