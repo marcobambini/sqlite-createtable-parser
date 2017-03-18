@@ -16,6 +16,7 @@ Just include sql3parse_table.h and sql3parse_table.c in your project and invoke:
 // sql is the CREATE TABLE sql statement
 // length is maximum length of sql in bytes or if 0 is passed then strlen is used to determine it
 // error is the returned error code (can be NULL)
+
 sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *error);
 ```
 **sql3table** is an opaque struct that you can introspect using the sql3table* public functions.  
