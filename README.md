@@ -24,7 +24,7 @@ The file sql3parse_debug.c shows you how to use all the API.
 
 
 ## Speed and memory considerations
-Parser should be pretty fast because very few memory allocations are performed (for each string for example it does not allocate memory and the reason why a sql3string is used). Memory requirement is linearly proportional to the number of columns in the table.
+The parser is pretty fast, mainly because very few memory allocations are performed. Memory requirement is linearly proportional to the number of columns in the table.
 ```
 You can estimate memory usage (on a 64bit system) usign the following formula:
 N1: number of columns WITHOUT a foreign key constraint
