@@ -26,6 +26,11 @@ sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *erro
 ```
 **sql3table** is an opaque struct that you can introspect using the sql3table* public functions.  
 
+## API
+To Do
+
+## ALTER TABLE
+To Do
 
 ## Speed and memory considerations
 The parser is blazing fast, mainly because very few memory allocations are performed and no copy operations are used between the sql string and the internal sql3string structs. Memory requirement is linearly proportional to the number of columns in the table.
