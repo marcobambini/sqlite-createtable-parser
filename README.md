@@ -28,7 +28,7 @@ sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *erro
 
 
 ## Speed and memory considerations
-The parser is pretty fast, mainly because very few memory allocations are performed and no copy operations are used. Memory requirement is linearly proportional to the number of columns in the table.
+The parser is blazing fast, mainly because very few memory allocations are performed and no copy operations are used between the sql string and the internal sql3string structs. Memory requirement is linearly proportional to the number of columns in the table.
 ```
 You can estimate memory usage (on a 64bit system) usign the following formula:
 N1: number of columns WITHOUT a foreign key constraint
