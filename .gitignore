@@ -239,3 +239,4 @@ _Pvt_Extensions
 .fake/
 
 *.xcworkspacedata
+CreateTableParser.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist

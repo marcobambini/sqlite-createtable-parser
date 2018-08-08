@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A9B0409D1C870E6E0001459D /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = A9B0409A1C870E6E0001459D /* main.c */; };
-		A9B0409E1C870E6E0001459D /* sql3parse_debug.c in Sources */ = {isa = PBXBuildFile; fileRef = A9B0409B1C870E6E0001459D /* sql3parse_debug.c */; };
+		A90DE075211B942F00E14077 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = A90DE073211B942F00E14077 /* main.c */; };
+		A90DE076211B942F00E14077 /* sql3parse_debug.c in Sources */ = {isa = PBXBuildFile; fileRef = A90DE074211B942F00E14077 /* sql3parse_debug.c */; };
 		A9B040A11C870E750001459D /* sql3parse_table.c in Sources */ = {isa = PBXBuildFile; fileRef = A9B0409F1C870E750001459D /* sql3parse_table.c */; };
 /* End PBXBuildFile section */
 
@@ -25,11 +25,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		A9B0409A1C870E6E0001459D /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = test/main.c; sourceTree = SOURCE_ROOT; };
-		A9B0409B1C870E6E0001459D /* sql3parse_debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sql3parse_debug.c; path = test/sql3parse_debug.c; sourceTree = SOURCE_ROOT; };
-		A9B0409C1C870E6E0001459D /* sql3parse_debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sql3parse_debug.h; path = test/sql3parse_debug.h; sourceTree = SOURCE_ROOT; };
-		A9B0409F1C870E750001459D /* sql3parse_table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sql3parse_table.c; path = src/sql3parse_table.c; sourceTree = SOURCE_ROOT; };
-		A9B040A01C870E750001459D /* sql3parse_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sql3parse_table.h; path = src/sql3parse_table.h; sourceTree = SOURCE_ROOT; };
+		A90DE072211B942F00E14077 /* sql3parse_debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sql3parse_debug.h; path = debug/sql3parse_debug.h; sourceTree = "<group>"; };
+		A90DE073211B942F00E14077 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = debug/main.c; sourceTree = "<group>"; };
+		A90DE074211B942F00E14077 /* sql3parse_debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sql3parse_debug.c; path = debug/sql3parse_debug.c; sourceTree = "<group>"; };
+		A9B0409F1C870E750001459D /* sql3parse_table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sql3parse_table.c; sourceTree = SOURCE_ROOT; };
+		A9B040A01C870E750001459D /* sql3parse_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sql3parse_table.h; sourceTree = SOURCE_ROOT; };
 		A9B67B9E1C70691E00B772A9 /* CreateTableParser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CreateTableParser; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -47,7 +47,11 @@
 		A9B67B951C70691E00B772A9 = {
 			isa = PBXGroup;
 			children = (
-				A9B67BA01C70691E00B772A9 /* CreateTableParser */,
+				A90DE073211B942F00E14077 /* main.c */,
+				A9B0409F1C870E750001459D /* sql3parse_table.c */,
+				A9B040A01C870E750001459D /* sql3parse_table.h */,
+				A90DE074211B942F00E14077 /* sql3parse_debug.c */,
+				A90DE072211B942F00E14077 /* sql3parse_debug.h */,
 				A9B67B9F1C70691E00B772A9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,18 +62,6 @@
 				A9B67B9E1C70691E00B772A9 /* CreateTableParser */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		A9B67BA01C70691E00B772A9 /* CreateTableParser */ = {
-			isa = PBXGroup;
-			children = (
-				A9B0409A1C870E6E0001459D /* main.c */,
-				A9B0409F1C870E750001459D /* sql3parse_table.c */,
-				A9B040A01C870E750001459D /* sql3parse_table.h */,
-				A9B0409B1C870E6E0001459D /* sql3parse_debug.c */,
-				A9B0409C1C870E6E0001459D /* sql3parse_debug.h */,
-			);
-			path = CreateTableParser;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -98,7 +90,7 @@
 		A9B67B961C70691E00B772A9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0720;
+				LastUpgradeCheck = 0940;
 				ORGANIZATIONNAME = Creolabs;
 				TargetAttributes = {
 					A9B67B9D1C70691E00B772A9 = {
@@ -128,8 +120,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A9B0409E1C870E6E0001459D /* sql3parse_debug.c in Sources */,
-				A9B0409D1C870E6E0001459D /* main.c in Sources */,
+				A90DE076211B942F00E14077 /* sql3parse_debug.c in Sources */,
+				A90DE075211B942F00E14077 /* main.c in Sources */,
 				A9B040A11C870E750001459D /* sql3parse_table.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -145,13 +137,23 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
@@ -188,13 +190,23 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
