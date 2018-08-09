@@ -90,17 +90,17 @@ typedef enum {
 // Main http://www.sqlite.org/lang_createtable.html
 sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *error);
 
-// Table
-sql3string *sql3table_schema (sql3table *table);
-sql3string *sql3table_name (sql3table *table);
-bool sql3table_is_temporary (sql3table *table);
-bool sql3table_is_ifnotexists (sql3table *table);
-bool sql3table_is_withoutrowid (sql3table *table);
-size_t sql3table_num_columns (sql3table *table);
-sql3column *sql3table_get_column (sql3table *table, size_t index);
-size_t sql3table_num_constraints (sql3table *table);
+// Table Information
+sql3string  *sql3table_schema (sql3table *table);
+sql3string  *sql3table_name (sql3table *table);
+bool        sql3table_is_temporary (sql3table *table);
+bool        sql3table_is_ifnotexists (sql3table *table);
+bool        sql3table_is_withoutrowid (sql3table *table);
+size_t      sql3table_num_columns (sql3table *table);
+sql3column  *sql3table_get_column (sql3table *table, size_t index);
+size_t      sql3table_num_constraints (sql3table *table);
 sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index);
-void sql3table_free (sql3table *table);
+void        sql3table_free (sql3table *table);
 	
 // Table Constraint
 sql3string *sql3table_constraint_name (sql3tableconstraint *tconstraint);
@@ -113,7 +113,7 @@ size_t sql3table_constraint_num_fkcolumns (sql3tableconstraint *tconstraint);
 sql3string *sql3table_constraint_get_fkcolumn (sql3tableconstraint *tconstraint, size_t index);
 sql3foreignkey *sql3table_constraint_foreignkey_clause (sql3tableconstraint *tconstraint);
 
-// Column
+// Column Constraint
 sql3string *sql3column_name (sql3column *column);
 sql3string *sql3column_type (sql3column *column);
 sql3string *sql3column_length (sql3column *column);
@@ -145,7 +145,7 @@ sql3string *sql3idxcolumn_name (sql3idxcolumn *idxcolumn);
 sql3string *sql3idxcolumn_collate (sql3idxcolumn *idxcolumn);
 sql3order_clause sql3idxcolumn_order (sql3idxcolumn *idxcolumn);
 	
-// String
+// String Utils
 const char *sql3string_ptr (sql3string *s, size_t *length);
 const char *sql3string_cstring (sql3string *s);
 	
