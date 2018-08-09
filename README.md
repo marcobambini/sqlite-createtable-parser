@@ -1,14 +1,21 @@
 ## SQLite CREATE TABLE Parser
 A parser for sqlite create table sql statements.
 
+* Extremely fast parser with no string copy overhead
+* BSD licensed with no dependencies (just drop the C file into your project)
+* Never recurses or allocates more memory than it needs
+* Very simple API 
+
+## Motivation
 [SQLite](https://www.sqlite.org/) is a very powerful software but it lacks an easy way to extract complete information about tables and columns constraints. The built-in sql pragma:  
 ```c
-PRAGMA schema.table_info(table-name);  
+PRAGMA table_info(table-name);  
 PRAGMA foreign_key_list(table-name);
 ```  
-provide incomplete information and a manual parsing is required in order to extract more useful information.
+provide incomplete information and a manual parsing is required in order to extract all the metadata from a table.
 
 CREATE TABLE syntax diagrams can be found on the official [sqlite website](https://www.sqlite.org/lang_createtable.html).
+
 
 ## Usage
 In order to extract the original CREATE TABLE sql statement you need to query the sqlite_master table
