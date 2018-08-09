@@ -82,22 +82,22 @@ sql3string          *sql3column_collate_name (sql3column *column);
 sql3foreignkey      *sql3column_foreignkey_clause (sql3column *column);
 	
 // Foreign key
-sql3string     *sql3foreignkey_table (sql3foreignkey *fk);
-size_t         sql3foreignkey_num_columns (sql3foreignkey *fk);
-sql3string     *sql3foreignkey_get_column (sql3foreignkey *fk, size_t index);
-sql3fk_action  sql3foreignkey_ondelete_action (sql3foreignkey *fk);
-sql3fk_action  sql3foreignkey_onupdate_action (sql3foreignkey *fk);
-sql3string     *sql3foreignkey_match (sql3foreignkey *fk);
-sql3fk_deftype sql3foreignkey_deferrable (sql3foreignkey *fk);
+sql3string          *sql3foreignkey_table (sql3foreignkey *fk);
+size_t              sql3foreignkey_num_columns (sql3foreignkey *fk);
+sql3string          *sql3foreignkey_get_column (sql3foreignkey *fk, size_t index);
+sql3fk_action       sql3foreignkey_ondelete_action (sql3foreignkey *fk);
+sql3fk_action       sql3foreignkey_onupdate_action (sql3foreignkey *fk);
+sql3string          *sql3foreignkey_match (sql3foreignkey *fk);
+sql3fk_deftype      sql3foreignkey_deferrable (sql3foreignkey *fk);
 
 // Indexed column
-sql3string       *sql3idxcolumn_name (sql3idxcolumn *idxcolumn);
-sql3string       *sql3idxcolumn_collate (sql3idxcolumn *idxcolumn);
-sql3order_clause sql3idxcolumn_order (sql3idxcolumn *idxcolumn);
+sql3string          *sql3idxcolumn_name (sql3idxcolumn *idxcolumn);
+sql3string          *sql3idxcolumn_collate (sql3idxcolumn *idxcolumn);
+sql3order_clause    sql3idxcolumn_order (sql3idxcolumn *idxcolumn);
 	
 // String Utils
-const char *sql3string_ptr (sql3string *s, size_t *length);
-const char *sql3string_cstring (sql3string *s);
+const char          *sql3string_ptr (sql3string *s, size_t *length);
+const char          *sql3string_cstring (sql3string *s);
 ```
 
 ## Example
