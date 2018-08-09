@@ -98,8 +98,8 @@ const char *sql3string_cstring (sql3string *s);
 ```
 
 ## Example
+Dump to stdout complete table information:
 ```c
-// print complete table information
 // all the necessary code is in sql3parse_debug.h/.c
 void table_dump (sql3table *table) {
     if (!table) return;
@@ -138,8 +138,34 @@ void table_dump (sql3table *table) {
 }
 ```
 
-## ALTER TABLE
-To Do
+## IMPLEMENT a COMPLETE ALTER TABLE in SQLite
+SQLite supports only a limite subset of the [ALTER TABLE](https://www.sqlite.org/lang_altertable.html) sql command. In particular only TABLE RENAME and COLUMN ADD can be natively used. What if we need to change a column definition or dropping a column? Then a series of manual steps are required.
+The strategy consists of creating a new table with the up-to-date schema and then copy data from the old table to the new one. To create the new table starting from the old one you need a way to extract complete information from a sqlite table and that's the main reason why I created this parser.
+ALTER TABLE algorithm looks like:
+```
+PRAGMA foreign_keys=off;
+ 
+BEGIN TRANSACTION;
+ 
+ALTER TABLE old_table RENAME TO temp_table;
+
+CREATE TABLE new_table(
+( 
+   column_definition,
+   ...
+);
+ 
+INSERT INTO table (column_list)
+  SELECT column_list
+  FROM temp_table;
+ 
+DROP TABLE temp_table;
+ 
+COMMIT;
+ 
+PRAGMA foreign_keys=on;
+```
+
 
 ## Speed and memory considerations
 The parser is blazing fast, mainly because very few memory allocations are performed and no copy operations are used between the sql string and the internal sql3string structs. Memory requirement is linearly proportional to the number of columns in the table.
