@@ -25,7 +25,8 @@ then just include sql3parse_table.h and sql3parse_table.c in your project and in
 ```c
 // sql is the CREATE TABLE sql statement
 // length is the length of sql (if 0 then strlen will be used)
-// in case of any issue, the return value is NULL and error is the returned error code (can be NULL)
+// error is the returned error code (can be NULL)
+// return value: NULL in case of error or an opaque pointer in case of success
 
 sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *error);
 ```
