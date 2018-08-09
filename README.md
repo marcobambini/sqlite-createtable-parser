@@ -153,13 +153,13 @@ BEGIN TRANSACTION;
  
 ALTER TABLE old_table RENAME TO temp_table;
 
+// new_table can be recreated by parsing the old_table and extracting all relevant information using this repo
 CREATE TABLE new_table(
-( 
    column_definition,
    ...
 );
  
-INSERT INTO table (column_list)
+INSERT INTO new_table (column_list)
   SELECT column_list
   FROM temp_table;
  
