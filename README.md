@@ -2,23 +2,21 @@
 A parser for sqlite create table sql statements.
 
 * Extremely fast parser with no string copy overhead
-* BSD licensed with no dependencies (just drop the C file into your project)
+* MIT licensed with no dependencies (just drop the C file into your project)
 * Never recurses or allocates more memory than it needs
 * Very simple API 
 
 ## Motivation
-[SQLite](https://www.sqlite.org/) is a very powerful software but it lacks an easy way to extract complete information about tables and columns constraints. The built-in sql pragma:  
+[SQLite](https://www.sqlite.org/) is a very powerful software but it lacks an easy way to extract complete information about tables and columns constraints. This drawback in addition to the lack of full ALTER TABLE support makes alterring a table a very hard task. The built-in sqlite pragmas provide incomplete information and a manual parsing is required in order to extract all the metadata from a table.
 ```c
 PRAGMA table_info(table-name);  
 PRAGMA foreign_key_list(table-name);
-```  
-provide incomplete information and a manual parsing is required in order to extract all the metadata from a table.
-
+```
 CREATE TABLE syntax diagrams can be found on the official [sqlite website](https://www.sqlite.org/lang_createtable.html).
 
 
 ## Usage
-In order to extract the original CREATE TABLE sql statement you need to query the sqlite_master table
+In order to extract the original CREATE TABLE sql statement you need to query the sqlite_master table from within an sqlite database:
 ```sql
 SELECT sql FROM sqlite_master WHERE name = 'myTable';
 ```
@@ -27,11 +25,11 @@ then just include sql3parse_table.h and sql3parse_table.c in your project and in
 ```c
 // sql is the CREATE TABLE sql statement
 // length is the length of sql (if 0 then strlen will be used)
-// error is the returned error code (can be NULL)
+// in case of any issue, the return value is NULL and error is the returned error code (can be NULL)
 
 sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *error);
 ```
-**sql3table** is an opaque struct that you can introspect using the sql3table* public functions.  
+**sql3table** is an opaque struct that you can introspect using the sql3table* public functions.
 
 ## API
 To Do
