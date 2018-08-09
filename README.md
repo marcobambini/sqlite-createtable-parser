@@ -14,6 +14,9 @@ PRAGMA foreign_key_list(table-name);
 ```
 CREATE TABLE syntax diagrams can be found on the official [sqlite website](https://www.sqlite.org/lang_createtable.html).
 
+## Pre-requisites
+- A C99 compiler.
+- SQL statement must be successfully compiled by sqlite.
 
 ## Usage
 In order to extract the original CREATE TABLE sql statement you need to query the sqlite_master table from within an sqlite database:
@@ -182,9 +185,7 @@ K: 0 if no foreign key yable constraint is used or 64
 Memory usage (in bytes): 144 + (N1 * 144) + (N2 * 208) + (N3 * 40) + K
 ```
 
-## Pre-requisites
-- A C99 compiler.
-- SQL statement must be successfully compiled by sqlite.
-
+## Other information
 This code is actually used by [Creo](https://creolabs.com).
+
 If you are interested in my others GitHub projects then take a look at the [Gravity](https://github.com/marcobambini/gravity) programming language.
