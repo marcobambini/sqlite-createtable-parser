@@ -153,7 +153,7 @@ BEGIN TRANSACTION;
  
 ALTER TABLE old_table RENAME TO temp_table;
 
-// new_table can be recreated by parsing the old_table and extracting all relevant information using this repo
+/* new_table can be recreated by parsing the old_table and extracting all relevant information using this repo */
 CREATE TABLE new_table(
    column_definition,
    ...
@@ -185,3 +185,6 @@ Memory usage (in bytes): 144 + (N1 * 144) + (N2 * 208) + (N3 * 40) + K
 ## Pre-requisites
 - A C99 compiler.
 - SQL statement must be successfully compiled by sqlite.
+
+This code is actually used by [Creo](https://creolabs.com).
+If you are interested in my others GitHub projects then take a look at the [Gravity](https://github.com/marcobambini/gravity) programming language.
