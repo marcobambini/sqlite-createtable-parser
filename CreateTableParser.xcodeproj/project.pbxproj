@@ -90,7 +90,7 @@
 		A9B67B961C70691E00B772A9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0940;
+				LastUpgradeCheck = 1420;
 				ORGANIZATIONNAME = Creolabs;
 				TargetAttributes = {
 					A9B67B9D1C70691E00B772A9 = {
@@ -100,10 +100,11 @@
 			};
 			buildConfigurationList = A9B67B991C70691E00B772A9 /* Build configuration list for PBXProject "CreateTableParser" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = A9B67B951C70691E00B772A9;
 			productRefGroup = A9B67B9F1C70691E00B772A9 /* Products */;
@@ -231,6 +232,7 @@
 		A9B67BA61C70691E00B772A9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -238,6 +240,7 @@
 		A9B67BA71C70691E00B772A9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

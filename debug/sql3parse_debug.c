@@ -226,6 +226,7 @@ void table_dump (sql3table *table) {
 	printf("Temporary: %d\n", sql3table_is_temporary(table));
 	printf("If Not Exists: %d\n", sql3table_is_ifnotexists(table));
 	printf("Without RowID: %d\n", sql3table_is_withoutrowid(table));
+    printf("Strict: %d\n", sql3table_is_strict(table));
 	
 	// columns
 	size_t num_columns = sql3table_num_columns(table);

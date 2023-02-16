@@ -96,6 +96,7 @@ sql3string  *sql3table_name (sql3table *table);
 bool        sql3table_is_temporary (sql3table *table);
 bool        sql3table_is_ifnotexists (sql3table *table);
 bool        sql3table_is_withoutrowid (sql3table *table);
+bool        sql3table_is_strict (sql3table *table);
 size_t      sql3table_num_columns (sql3table *table);
 sql3column  *sql3table_get_column (sql3table *table, size_t index);
 size_t      sql3table_num_constraints (sql3table *table);
