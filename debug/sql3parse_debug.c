@@ -11,7 +11,7 @@
 static const char *sql3conflict_clause_str (sql3conflict_clause clause) {
 	switch (clause) {
 		case SQL3CONFLICT_NONE: return "NONE";
-		case SQL3CONFLICT_ROOLBACK: return "ROOLBACK";
+		case SQL3CONFLICT_ROLLBACK: return "ROOLBACK";
 		case SQL3CONFLICT_ABORT: return "ABORT";
 		case SQL3CONFLICT_FAIL: return "FAIL";
 		case SQL3CONFLICT_IGNORE: return "IGNORE";
