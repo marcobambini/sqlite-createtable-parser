@@ -434,7 +434,7 @@ static sql3error_code sql3parse_optionalconflitclause (sql3state *state, sql3con
 		if (token != TOK_CONFLICT) return SQL3ERROR_SYNTAX;
 		
 		token = sql3lexer_next(state);
-		if (token == TOK_ROLLBACK) *conflict = SQL3CONFLICT_ROOLBACK;
+		if (token == TOK_ROLLBACK) *conflict = SQL3CONFLICT_ROLLBACK;
 		else if (token == TOK_ABORT) *conflict = SQL3CONFLICT_ABORT;
 		else if (token == TOK_FAIL) *conflict = SQL3CONFLICT_FAIL;
 		else if (token == TOK_IGNORE) *conflict = SQL3CONFLICT_IGNORE;
