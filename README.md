@@ -1,5 +1,5 @@
 ## SQLite CREATE TABLE Parser
-A parser for sqlite create table sql statements.
+A parser for SQLite create table sql statements.
 
 * Extremely fast parser with no string copy overhead
 * MIT licensed with no dependencies (just drop the C file into your project)
@@ -16,10 +16,10 @@ CREATE TABLE syntax diagrams can be found on the official [sqlite website](https
 
 ## Pre-requisites
 - A C99 compiler.
-- SQL statement must be successfully compiled by sqlite.
+- SQL statement must be successfully compiled by SQLite.
 
 ## Usage
-In order to extract the original CREATE TABLE sql statement you need to query the sqlite_master table from within an sqlite database:
+In order to extract the original CREATE TABLE sql statement you need to query the sqlite_master table from within an SQLite database:
 ```sql
 SELECT sql FROM sqlite_master WHERE name = 'myTable';
 ```
@@ -145,7 +145,7 @@ void table_dump (sql3table *table) {
 SQLite supports only a limite subset of the [ALTER TABLE](https://www.sqlite.org/lang_altertable.html) sql command. In particular only TABLE RENAME and COLUMN ADD can be natively used. What if we need to change a column definition or dropping a column? Then a series of manual steps are required.
 
 
-The strategy consists of creating a new table with the up-to-date schema and then copy data from the old table to the new one. To create the new table starting from the old one you need a way to extract complete information from a sqlite table and that's the main reason why I created this parser.
+The strategy consists of creating a new table with the up-to-date schema and then copy data from the old table to the new one. To create the new table starting from the old one you need a way to extract complete information from a SQLite table and that's the main reason why I created this parser.
 
 
 ALTER TABLE algorithm looks like:
