@@ -43,6 +43,7 @@ sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *erro
 // Table information
 sql3string          *sql3table_schema (sql3table *table);
 sql3string          *sql3table_name (sql3table *table);
+sql3string          *sql3table_comment (sql3table *table);
 bool                sql3table_is_temporary (sql3table *table);
 bool                sql3table_is_ifnotexists (sql3table *table);
 bool                sql3table_is_withoutrowid (sql3table *table);
@@ -68,6 +69,7 @@ sql3string          *sql3column_name (sql3column *column);
 sql3string          *sql3column_type (sql3column *column);
 sql3string          *sql3column_length (sql3column *column);
 sql3string          *sql3column_constraint_name (sql3column *column);
+sql3string          *sql3column_comment (sql3column *column);
 bool                sql3column_is_primarykey (sql3column *column);
 bool                sql3column_is_autoincrement (sql3column *column);
 bool                sql3column_is_notnull (sql3column *column);
@@ -114,6 +116,10 @@ void table_dump (sql3table *table) {
     // table name
     ptr = sql3table_name(table);
     sql3string_dump(ptr, "Table Name");
+
+    // table comment
+    ptr = sql3table_comment(table);
+    if (ptr) sql3string_dump(ptr, "Table Comment");
     
     // table flags
     printf("Temporary: %d\n", sql3table_is_temporary(table));
@@ -131,7 +137,7 @@ void table_dump (sql3table *table) {
     
     // loop to print complete table constraints
     size_t num_constraint = sql3table_num_constraints(table);
-    printf("Num Table Constraint: %zu\n", num_constraint);
+    printf("\nNum Table Constraint: %zu\n", num_constraint);
     for (size_t i=0; i<num_constraint; ++i) {
         sql3tableconstraint *constraint = sql3table_get_constraint(table, i);
         printf("\n== TABLE CONSTRAINT %zu ==\n", i);
