@@ -122,6 +122,10 @@ static void sql3column_dump (sql3column *column) {
 	ptr = sql3column_constraint_name(column);
 	sql3string_dump(ptr, "Constraint Name");
 	
+    // column comment
+    ptr = sql3column_comment(column);
+    if (ptr) sql3string_dump(ptr, "Column Comment");
+    
 	// flags
 	printf("Primary Key: %d\n", sql3column_is_primarykey(column));
 	printf("Autoincrement: %d\n", sql3column_is_autoincrement(column));
@@ -222,6 +226,10 @@ void table_dump (sql3table *table) {
 	ptr = sql3table_name(table);
 	sql3string_dump(ptr, "Table Name");
 	
+    // table comment
+    ptr = sql3table_comment(table);
+    if (ptr) sql3string_dump(ptr, "Table Comment");
+    
 	// flags
 	printf("Temporary: %d\n", sql3table_is_temporary(table));
 	printf("If Not Exists: %d\n", sql3table_is_ifnotexists(table));
@@ -239,7 +247,7 @@ void table_dump (sql3table *table) {
 	
 	// table constraints
 	size_t num_constraint = sql3table_num_constraints(table);
-	printf("Num Table Constraint: %zu\n", num_constraint);
+	printf("\nNum Table Constraint: %zu\n", num_constraint);
 	for (size_t i=0; i<num_constraint; ++i) {
 		sql3tableconstraint *constraint = sql3table_get_constraint(table, i);
 		printf("\n== TABLE CONSTRAINT %zu ==\n", i);

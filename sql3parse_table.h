@@ -93,6 +93,7 @@ sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *erro
 // Table Information
 sql3string  *sql3table_schema (sql3table *table);
 sql3string  *sql3table_name (sql3table *table);
+sql3string  *sql3table_comment (sql3table *table);
 bool        sql3table_is_temporary (sql3table *table);
 bool        sql3table_is_ifnotexists (sql3table *table);
 bool        sql3table_is_withoutrowid (sql3table *table);
@@ -119,6 +120,7 @@ sql3string *sql3column_name (sql3column *column);
 sql3string *sql3column_type (sql3column *column);
 sql3string *sql3column_length (sql3column *column);
 sql3string *sql3column_constraint_name (sql3column *column);
+sql3string *sql3column_comment (sql3column *column);
 bool sql3column_is_primarykey (sql3column *column);
 bool sql3column_is_autoincrement (sql3column *column);
 bool sql3column_is_notnull (sql3column *column);

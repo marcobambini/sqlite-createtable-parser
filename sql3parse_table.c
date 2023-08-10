@@ -49,6 +49,7 @@ struct sql3column {
 	sql3string		type;			                // column type (can be NULL)
 	sql3string		length;			                // column length (can be NULL)
 	sql3string		constraint_name;                // constraint name (can be NULL)
+    sql3string      comment;                        // column comment (can be NULL)
 	bool			is_primarykey;                  // primary key flag
 	bool			is_autoincrement;               // autoincrement flag (only if is_primarykey is true)
 	bool			is_notnull;		                // not null flag
@@ -89,6 +90,7 @@ struct sql3tableconstraint {
 struct sql3table {
 	sql3string		name;			    // table name
 	sql3string		schema;			    // schema name (can be NULL)
+    sql3string      comment;            // table comment (can be NULL)
 	bool			is_temporary;		// flag set if table is temporary
 	bool			is_ifnotexists;		// flag set if table is created with a IF NOT EXISTS clause
 	bool			is_withoutrowid;	// flag set if table is created with a WITHOUT ROWID clause
@@ -110,18 +112,19 @@ typedef struct {
 	size_t			size;			    // size of the input buffer
 	size_t			offset;			    // offset inside the input buffer
 	sql3string		identifier;		    // latest identifier found by the lexer
+    sql3string      *comment;           // ptr to comment struct contained in sql3table or sql3column
 	sql3table		*table;			    // table definition
 } sql3state;
 
 // MARK: - Macros -
 
-#define IS_EOF				    (state->offset == state->size)
-#define PEEK				    (state->buffer[state->offset])
-#define PEEK2				    (state->buffer[state->offset+1])
-#define NEXT				    (state->buffer[state->offset++])
-#define SKIP_ONE			    ++state->offset;
-#define CHECK_STR(s)			if (!s.ptr) return NULL
-#define CHECK_IDX(idx1,idx2)    if (idx1>=idx2) return NULL
+#define IS_EOF				            (state->offset == state->size)
+#define PEEK				            (state->buffer[state->offset])
+#define PEEK2				            (state->buffer[state->offset+1])
+#define NEXT				            (state->buffer[state->offset++])
+#define SKIP_ONE			            ++state->offset;
+#define CHECK_STR(s)			        if (!s.ptr) return NULL
+#define CHECK_IDX(idx1,idx2)            if (idx1>=idx2) return NULL
 
 // MARK: - Public String Functions -
 
@@ -194,11 +197,6 @@ static bool symbol_is_escape (sql3char c) {
 	// used a lot in legacy code, so I cannot take it out.
 	return ((c == '`') || (c == '\'') || (c == '"') || (c == '['));
 }
-
-//static bool symbol_is_number (sql3char c) {
-//	if ((c == '+') || (c == '-')) return true;
-//	return isdigit(c);
-//}
 
 static bool symbol_is_punctuation (sql3char c) {
 	return ((c == '.') || (c == ',') || (c == '(') || (c == ')') || (c == ';'));
@@ -298,26 +296,46 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 }
 
 sql3token_t sql3lexer_comment (sql3state *state) {
-	bool is_c_comment = ((NEXT == '/') && (NEXT == '*'));
-	
-	while (1) {
-		sql3char c1 = NEXT;
-		
-		// EOF case
-		if (c1 == 0) {
-			// its an error here ONLY if C-style comment
-			return (is_c_comment) ? TOK_ERROR : TOK_COMMENT;
-		}
-		
-		// -- comments are closed by newline
-		if ((!is_c_comment) && symbol_is_newline(c1)) break;
-		
-		// c-style comment needs two characters to check
-		sql3char c2 = NEXT;
-		if ((is_c_comment) && (c1 == '*') && (c2 == '/')) break;
-	}
-	
-	return TOK_COMMENT;
+    sql3char c1_start = NEXT;
+    sql3char c2_start = NEXT;
+    bool is_c_comment = ((c1_start == '/') && (c2_start == '*'));
+    
+    size_t offset = state->offset;
+    const char *ptr = &state->buffer[offset];
+    
+    while (1) {
+        sql3char c1 = NEXT;
+        
+        // EOF case
+        if (c1 == 0) {
+            // SQL or C-style comments can be terminated by EOF
+            break;
+        }
+        
+        // check for end-of-comment condition
+        if (is_c_comment) {
+            // c-style comments need two characters to check
+            sql3char c2 = PEEK;
+            if ((c1 == '*') && (c2 == '/')) {
+                NEXT; // consume c2
+                break;
+            }
+        } else {
+            // -- comments are closed by newline
+            if (symbol_is_newline(c1)) break;
+        }
+    }
+    
+    // setup current comment
+    if (state->comment) {
+        size_t length = state->offset - offset;
+        length -= (is_c_comment) ? 2 : 1; // remove */ or newline
+        state->comment->ptr = ptr;
+        state->comment->length = length;
+        //printf("Parsed comment: %.*s\n", (int)length, ptr);
+    }
+    
+    return TOK_COMMENT;
 }
 
 sql3token_t sql3lexer_punctuation (sql3state *state) {
@@ -407,6 +425,7 @@ static sql3token_t sql3lexer_peek (sql3state *state) {
 	size_t saved = state->offset;
 	sql3token_t token = sql3lexer_next(state);
 	state->offset = saved;
+    
 	return token;
 }
 
@@ -889,7 +908,8 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 				column->foreignkey_clause = fk;
 			} break;
 				
-			default: return SQL3ERROR_SYNTAX;
+			default:
+                return SQL3ERROR_SYNTAX;
 		}
 	}
 	
@@ -899,6 +919,9 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 static sql3column *sql3parse_column (sql3state *state) {
 	sql3column *column = SQL3MALLOC0(sizeof(sql3column));
 	if (!column) return NULL;
+    
+    // set column comment reference inside state context
+    state->comment = &column->comment;
 	
 	// column name is mandatory
 	sql3token_t token = sql3lexer_next(state);
@@ -916,7 +939,7 @@ static sql3column *sql3parse_column (sql3state *state) {
 	if (token_is_column_constraint(sql3lexer_peek(state))) {
 		if (sql3parse_column_constraints(state, column) != SQL3ERROR_NONE) goto error;
 	}
-		
+    
 	return column;
 	
 error:
@@ -930,7 +953,7 @@ static sql3error_code sql3parse (sql3state *state) {
 	// interested only in CREATE statements
 	sql3token_t token = sql3lexer_next(state);
 	if (token != TOK_CREATE) return SQL3ERROR_UNSUPPORTEDSQL;
-	
+    
 	sql3table *table = state->table;
 	
 	// next statement after a CREATE can be TEMP or a TABLE
@@ -1012,11 +1035,15 @@ static sql3error_code sql3parse (sql3state *state) {
 			sql3lexer_next(state);	// consume comma
 			token = sql3lexer_peek(state);	// peek next token
 			
-			if (token_is_table_constraint(token)) break;
-			else continue;
+            if (token_is_table_constraint(token)) break;
+            else continue;
 		}
-		
-		if (token == TOK_CLOSED_PARENTHESIS) break;
+        
+        if (token == TOK_CLOSED_PARENTHESIS) {
+            //sql3lexer_next(state);    // consume closed parenthesis
+            token = sql3lexer_peek(state);
+            break;
+        }
 		
 		// if it is not an identifier -> column, a comma, a token_table_constraint
 		// nor a closed_parenthesis then it is a syntax error
@@ -1025,6 +1052,8 @@ static sql3error_code sql3parse (sql3state *state) {
 	
 	// parse optional table-constraint
 	while (token_is_table_constraint(token)) {
+        state->comment = &table->comment;
+        
 		sql3tableconstraint *constraint = sql3parse_table_constraint(state);
 		if (!constraint) return SQL3ERROR_SYNTAX;
 		
@@ -1051,13 +1080,16 @@ static sql3error_code sql3parse (sql3state *state) {
 	token = sql3lexer_next(state);
 	if (token != TOK_CLOSED_PARENTHESIS) return SQL3ERROR_SYNTAX;
 	
+    // set table comment reference inside state context
+    state->comment = &table->comment;
+    
     // check for optional TABLE options (WITHOUT ROWID and/or STRICT)
     if (sql3parse_table_options(state) != SQL3ERROR_NONE) return SQL3ERROR_SYNTAX;
 	
 	// check and consume optional ;
 	token = sql3lexer_peek(state);
 	if (token == TOK_SEMICOLON) sql3lexer_next(state);
-	
+    
 	return SQL3ERROR_NONE;
 }
 
@@ -1071,6 +1103,11 @@ sql3string *sql3table_schema (sql3table *table) {
 sql3string *sql3table_name (sql3table *table) {
 	CHECK_STR(table->name);
 	return &table->name;
+}
+
+sql3string *sql3table_comment (sql3table *table) {
+    CHECK_STR(table->comment);
+    return &table->comment;
 }
 
 bool sql3table_is_temporary (sql3table *table) {
@@ -1212,6 +1249,11 @@ sql3string *sql3column_constraint_name (sql3column *column) {
 	return &column->constraint_name;
 }
 
+sql3string *sql3column_comment (sql3column *column) {
+    CHECK_STR(column->comment);
+    return &column->comment;
+}
+
 bool sql3column_is_primarykey (sql3column *column) {
 	return column->is_primarykey;
 }
@@ -1332,6 +1374,7 @@ sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *erro
 	state.buffer = sql;
 	state.size = length;
 	state.table = table;
+    state.comment = &table->comment;
 	
 	// begin parsing
 	sql3error_code err = sql3parse(&state);
