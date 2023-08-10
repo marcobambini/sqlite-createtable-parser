@@ -1,5 +1,5 @@
 ## SQLite CREATE TABLE Parser
-A parser for SQLite create table sql statements.
+A parser for SQLite [create table](https://www.sqlite.org/lang_createtable.html) sql statements.
 
 * Extremely fast parser with no memory copy overhead
 * MIT licensed with no dependencies (just drop the C file into your project)
