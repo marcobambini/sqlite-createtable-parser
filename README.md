@@ -1,5 +1,5 @@
-## SQLite CREATE TABLE Parser
-A parser for SQLite [create table](https://www.sqlite.org/lang_createtable.html) sql statements.
+## SQLite CREATE and ALTER TABLE Parser
+A parser for SQLite [create table](https://www.sqlite.org/lang_createtable.html) and [alter table](https://www.sqlite.org/lang_altertable.html) sql statements.
 
 * Extremely fast parser with no memory copy overhead
 * MIT licensed with no dependencies (just drop the C file into your project)
@@ -52,6 +52,10 @@ sql3column          *sql3table_get_column (sql3table *table, size_t index);
 size_t              sql3table_num_constraints (sql3table *table);
 sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index);
 void                sql3table_free (sql3table *table);
+sql3statement_type  sql3table_type (sql3table *table);
+sql3string          *sql3table_current_name (sql3table *table);
+sql3string          *sql3table_new_name (sql3table *table);
+
 	
 // Table constraints
 sql3string          *sql3table_constraint_name (sql3tableconstraint *tconstraint);
