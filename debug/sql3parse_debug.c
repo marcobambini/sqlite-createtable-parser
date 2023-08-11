@@ -6,7 +6,7 @@
 
 #include "sql3parse_debug.h"
 
-#pragma mark Enum2String Code -
+//MARK: Enum2String Code -
 
 static const char *sql3conflict_clause_str (sql3conflict_clause clause) {
 	switch (clause) {
@@ -51,7 +51,7 @@ static const char *sql3constraint_type_str (sql3constraint_type type) {
 	}
 }
 
-#pragma mark - Dump Code -
+//MARK: - Dump Code -
 
 static void sql3string_dump (sql3string *ptr, const char *label) {
 	if (!ptr) return;
@@ -213,45 +213,111 @@ static void sql3tableconstraint_dump (sql3tableconstraint *constraint) {
 	}
 }
 
-#pragma mark - Public -
+//MARK: -
+
+static void table_dump_common (sql3table *table) {
+    // schema name
+    sql3string *ptr = sql3table_schema(table);
+    sql3string_dump(ptr, "Schema Name");
+    
+    // table name
+    ptr = sql3table_name(table);
+    sql3string_dump(ptr, "Table Name");
+    
+    // table comment
+    ptr = sql3table_comment(table);
+    if (ptr) sql3string_dump(ptr, "Table Comment");
+}
+
+static void table_dump_create (sql3table *table) {
+    printf("CREATE TABLE statement\n\n");
+    
+    // name
+    table_dump_common(table);
+    
+    // flags
+    printf("Temporary: %d\n", sql3table_is_temporary(table));
+    printf("If Not Exists: %d\n", sql3table_is_ifnotexists(table));
+    printf("Without RowID: %d\n", sql3table_is_withoutrowid(table));
+    printf("Strict: %d\n", sql3table_is_strict(table));
+    
+    // columns
+    size_t num_columns = sql3table_num_columns(table);
+    printf("Num Columns: %zu\n", num_columns);
+    for (size_t i=0; i<num_columns; ++i) {
+        sql3column *column = sql3table_get_column(table, i);
+        printf("\n== COLUMN %zu ==\n", i);
+        sql3column_dump(column);
+    }
+    
+    // table constraints
+    size_t num_constraint = sql3table_num_constraints(table);
+    printf("\nNum Table Constraint: %zu\n", num_constraint);
+    for (size_t i=0; i<num_constraint; ++i) {
+        sql3tableconstraint *constraint = sql3table_get_constraint(table, i);
+        printf("\n== TABLE CONSTRAINT %zu ==\n", i);
+        sql3tableconstraint_dump(constraint);
+    }
+}
+
+static void table_dump_alter (sql3table *table) {
+    sql3statement_type type = sql3table_type(table);
+    
+    if (type == SQL3ALTER_RENAME_TABLE) {
+        printf("ALTER TABLE RENAME TABLE statement\n\n");
+        table_dump_common(table);
+        
+        sql3string *ptr = sql3table_new_name(table);
+        sql3string_dump(ptr, "New Table Name");
+        return;
+    }
+    
+    if (type == SQL3ALTER_RENAME_COLUMN) {
+        printf("ALTER TABLE RENAME COLUMN statement\n\n");
+        table_dump_common(table);
+        
+        sql3string *ptr = sql3table_current_name(table);
+        sql3string_dump(ptr, "Column Name");
+        ptr = sql3table_new_name(table);
+        sql3string_dump(ptr, "New Column Name");
+        return;
+    }
+    
+    if (type == SQL3ALTER_DROP_COLUMN) {
+        printf("ALTER TABLE DROP COLUMN statement\n\n");
+        table_dump_common(table);
+        
+        sql3string *ptr = sql3table_current_name(table);
+        sql3string_dump(ptr, "Column Name");
+        return;
+    }
+    
+    if (type == SQL3ALTER_ADD_COLUMN) {
+        printf("ALTER TABLE ADD COLUMN statement\n\n");
+        table_dump_common(table);
+        
+        // only ONE column in the ALTER TABLE ADD COLUMN statement
+        sql3column *column = sql3table_get_column(table, 0);
+        sql3column_dump(column);
+        
+        return;
+    }
+}
+
+//MARK: - Public -
 
 void table_dump (sql3table *table) {
 	if (!table) return;
 	
-	// schema name
-	sql3string *ptr = sql3table_schema(table);
-	sql3string_dump(ptr, "Schema Name");
-	
-	// table name
-	ptr = sql3table_name(table);
-	sql3string_dump(ptr, "Table Name");
-	
-    // table comment
-    ptr = sql3table_comment(table);
-    if (ptr) sql3string_dump(ptr, "Table Comment");
+    // sanity check
+    sql3statement_type type = sql3table_type(table);
+    if (type == SQL3CREATE_UNKNOWN) {
+        printf("Unknown statement type.\n");
+        return;
+    }
     
-	// flags
-	printf("Temporary: %d\n", sql3table_is_temporary(table));
-	printf("If Not Exists: %d\n", sql3table_is_ifnotexists(table));
-	printf("Without RowID: %d\n", sql3table_is_withoutrowid(table));
-    printf("Strict: %d\n", sql3table_is_strict(table));
-	
-	// columns
-	size_t num_columns = sql3table_num_columns(table);
-	printf("Num Columns: %zu\n", num_columns);
-	for (size_t i=0; i<num_columns; ++i) {
-		sql3column *column = sql3table_get_column(table, i);
-		printf("\n== COLUMN %zu ==\n", i);
-		sql3column_dump(column);
-	}
-	
-	// table constraints
-	size_t num_constraint = sql3table_num_constraints(table);
-	printf("\nNum Table Constraint: %zu\n", num_constraint);
-	for (size_t i=0; i<num_constraint; ++i) {
-		sql3tableconstraint *constraint = sql3table_get_constraint(table, i);
-		printf("\n== TABLE CONSTRAINT %zu ==\n", i);
-		sql3tableconstraint_dump(constraint);
-	}
+    // dump create/alter table details
+    (type == SQL3CREATE_TABLE) ? table_dump_create(table) : table_dump_alter(table);
+    
     printf("\n");
 }

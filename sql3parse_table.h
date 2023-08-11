@@ -86,6 +86,15 @@ typedef enum {
 	SQL3TABLECONSTRAINT_CHECK,
 	SQL3TABLECONSTRAINT_FOREIGNKEY
 } sql3constraint_type;
+
+typedef enum {
+    SQL3CREATE_UNKNOWN,
+    SQL3CREATE_TABLE,
+    SQL3ALTER_RENAME_TABLE,
+    SQL3ALTER_RENAME_COLUMN,
+    SQL3ALTER_ADD_COLUMN,
+    SQL3ALTER_DROP_COLUMN
+} sql3statement_type;
 	
 // Main http://www.sqlite.org/lang_createtable.html
 sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *error);
@@ -103,6 +112,9 @@ sql3column  *sql3table_get_column (sql3table *table, size_t index);
 size_t      sql3table_num_constraints (sql3table *table);
 sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index);
 void        sql3table_free (sql3table *table);
+sql3statement_type sql3table_type (sql3table *table);
+sql3string  *sql3table_current_name (sql3table *table);
+sql3string  *sql3table_new_name (sql3table *table);
 	
 // Table Constraint
 sql3string *sql3table_constraint_name (sql3tableconstraint *tconstraint);

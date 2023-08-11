@@ -12,7 +12,7 @@ typedef enum {
 	
 	// keywords
 	TOK_CREATE, TOK_TEMP, TOK_TABLE, TOK_IF, TOK_NOT, TOK_EXISTS,
-	TOK_WITHOUT, TOK_ROWID, TOK_STRICT,
+	TOK_WITHOUT, TOK_ROWID, TOK_STRICT, TOK_AS,
 	
 	// separators
 	TOK_DOT, TOK_SEMICOLON, TOK_COMMA, TOK_OPEN_PARENTHESIS, TOK_CLOSED_PARENTHESIS,
@@ -26,6 +26,9 @@ typedef enum {
 	TOK_REFERENCES, TOK_DELETE, TOK_UPDATE, TOK_SET, TOK_NULL, TOK_DEFAULT, TOK_CASCADE,
 	TOK_RESTRICT, TOK_NO, TOK_ACTION, TOK_MATCH, TOK_DEFERRABLE, TOK_INITIALLY,
 	TOK_DEFERRED, TOK_IMMEDIATE,
+    
+    // alter
+    TOK_ALTER, TOK_RENAME, TOK_ADD, TOK_DROP, TOK_COLUMN, TOK_TO
 	
 } sql3token_t;
 
@@ -99,6 +102,9 @@ struct sql3table {
 	sql3column		**columns;		    // array of columns defined in the table
 	size_t			num_constraint;		// number of table constraint
 	sql3tableconstraint	**constraints;  // array of table constraints
+    sql3statement_type  type;           // statement type
+    sql3string      current_name;       // used in ALTER TABLE statement
+    sql3string      new_name;           // used in ALTER TABLE statement
 };
 
 struct sql3idxcolumn {
@@ -115,6 +121,8 @@ typedef struct {
     sql3string      *comment;           // ptr to comment struct contained in sql3table or sql3column
 	sql3table		*table;			    // table definition
 } sql3state;
+
+static sql3string temp_identifier = {.ptr = "TEMP", .length = 4};
 
 // MARK: - Macros -
 
@@ -222,6 +230,8 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 		if (str_nocasencmp(ptr, "if", length) == 0) return TOK_IF;
 		if (str_nocasencmp(ptr, "on", length) == 0) return TOK_ON;
 		if (str_nocasencmp(ptr, "no", length) == 0) return TOK_NO;
+        if (str_nocasencmp(ptr, "as", length) == 0) return TOK_AS;
+        if (str_nocasencmp(ptr, "to", length) == 0) return TOK_TO;
 		break;
 			
 		case 3:
@@ -229,6 +239,7 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 		if (str_nocasencmp(ptr, "key", length) == 0) return TOK_KEY;
 		if (str_nocasencmp(ptr, "asc", length) == 0) return TOK_ASC;
 		if (str_nocasencmp(ptr, "set", length) == 0) return TOK_SET;
+        if (str_nocasencmp(ptr, "add", length) == 0) return TOK_ADD;
 		break;
 			
 		case 4:
@@ -236,6 +247,7 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 		if (str_nocasencmp(ptr, "desc", length) == 0) return TOK_DESC;
 		if (str_nocasencmp(ptr, "null", length) == 0) return TOK_NULL;
 		if (str_nocasencmp(ptr, "fail", length) == 0) return TOK_FAIL;
+        if (str_nocasencmp(ptr, "drop", length) == 0) return TOK_DROP;
 		break;
 			
 		case 5:
@@ -244,6 +256,7 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 		if (str_nocasencmp(ptr, "check", length) == 0) return TOK_CHECK;
 		if (str_nocasencmp(ptr, "abort", length) == 0) return TOK_ABORT;
 		if (str_nocasencmp(ptr, "match", length) == 0) return TOK_MATCH;
+        if (str_nocasencmp(ptr, "alter", length) == 0) return TOK_ALTER;
 		break;
 			
 		case 6:
@@ -255,6 +268,8 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 		if (str_nocasencmp(ptr, "update", length) == 0) return TOK_UPDATE;
 		if (str_nocasencmp(ptr, "action", length) == 0) return TOK_ACTION;
         if (str_nocasencmp(ptr, "strict", length) == 0) return TOK_STRICT;
+        if (str_nocasencmp(ptr, "rename", length) == 0) return TOK_RENAME;
+        if (str_nocasencmp(ptr, "column", length) == 0) return TOK_COLUMN;
 		break;
 		
 		case 7:
@@ -947,150 +962,278 @@ error:
 	return NULL;
 }
 
-static sql3error_code sql3parse (sql3state *state) {
-	// CREATE [TEMP | TEMPORARY] TABLE [IF NOT EXISTS] [schema-name .]table-name ...
-	
-	// interested only in CREATE statements
-	sql3token_t token = sql3lexer_next(state);
-	if (token != TOK_CREATE) return SQL3ERROR_UNSUPPORTEDSQL;
+// MARK: -
+
+static sql3error_code sql3parse_schema_identifier (sql3state *state) {
+    sql3table *table = state->table;
     
-	sql3table *table = state->table;
-	
-	// next statement after a CREATE can be TEMP or a TABLE
-	token = sql3lexer_next(state);
-	if (token == TOK_TEMP) {
-		table->is_temporary = true;
-		
-		// parse next token (must be TABLE token)
-		token = sql3lexer_next(state);
-	}
-	
-	// assure TABLE token
-	if (token != TOK_TABLE) return SQL3ERROR_UNSUPPORTEDSQL;
-	
-	// check for IF NOT EXISTS clause
-	if (sql3lexer_peek(state) == TOK_IF) {
-		// consume IF
-		sql3lexer_next(state);
-		
-		// next must be NOT
-		if (sql3lexer_next(state) != TOK_NOT) return SQL3ERROR_SYNTAX;
-		
-		// next must be EXISTS
-		if (sql3lexer_next(state) != TOK_EXISTS) return SQL3ERROR_SYNTAX;
-		
-		// safely set the flag here
-		table->is_ifnotexists = true;
-	}
-	
-	// at this point there should be an identifier
-	// only the optional dot will tell if it is a schema or a table name
-	if (sql3lexer_next(state) != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
-	const char *identifier = sql3string_ptr(&state->identifier, NULL);
-	if (!identifier) return SQL3ERROR_SYNTAX;
-	
-	// check for optional DOT (if any then identifier is a schema name)
-	if (sql3lexer_peek(state) == TOK_DOT) {
-		// consume DOT
-		sql3lexer_next(state);
-		
-		// set schema name
-		table->schema = state->identifier;
-		
-		// parse table name
-		if (sql3lexer_next(state) != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
-		identifier = sql3string_ptr(&state->identifier, NULL);
-		if (!identifier) return SQL3ERROR_SYNTAX;
-	}
-	
-	// set table name
-	table->name = state->identifier;
-	
-	// start parsing column and table constraints
-	
-	// '(' is mandatory here
-	token = sql3lexer_next(state);
-	if (token != TOK_OPEN_PARENTHESIS) return SQL3ERROR_SYNTAX;
-	
-	// parse column-def
-	while (1) {
-		token = sql3lexer_peek(state);
-		
-		// column name is mandatory here
-		if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
-		
-		// parse column definition
-		sql3column *column = sql3parse_column(state);
-		if (!column) return SQL3ERROR_SYNTAX;
-		
-		// add column to columns array
-		++table->num_columns;
-		table->columns = SQL3REALLOC(table->columns, sizeof(sql3column**) * table->num_columns);
-		if (!table->columns) return SQL3ERROR_MEMORY;
-		table->columns[table->num_columns-1] = column;
-		
-		// check for optional comma
-		token = sql3lexer_peek(state);
-		if (token == TOK_COMMA) {
-			sql3lexer_next(state);	// consume comma
-			token = sql3lexer_peek(state);	// peek next token
-			
+    // at this point there should be an identifier
+    // only the optional dot will tell if it is a schema or a table name
+    sql3token_t token = sql3lexer_next(state);
+    
+    // temp is a keyword but it is perfectly legal as a schema name
+    if (token != TOK_IDENTIFIER && token != TOK_TEMP) return SQL3ERROR_SYNTAX;
+    
+    const char *identifier = (token == TOK_IDENTIFIER) ? sql3string_ptr(&state->identifier, NULL) : temp_identifier.ptr;
+    if (!identifier) return SQL3ERROR_SYNTAX;
+    
+    // check for optional DOT (if any then identifier is a schema name)
+    if (sql3lexer_peek(state) == TOK_DOT) {
+        // consume DOT
+        sql3lexer_next(state);
+        
+        // set schema name
+        table->schema = (token == TOK_IDENTIFIER) ? state->identifier : temp_identifier;
+        
+        // parse table name
+        if (sql3lexer_next(state) != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
+        identifier = sql3string_ptr(&state->identifier, NULL);
+        if (!identifier) return SQL3ERROR_SYNTAX;
+    }
+    
+    // set table name
+    table->name = state->identifier;
+    
+    return SQL3ERROR_NONE;
+}
+
+static sql3error_code sql3parse_alter (sql3state *state) {
+    // https://www.sqlite.org/lang_altertable.html
+    // ALTER TABLE [schema-name .]table-name ...
+    
+    sql3table *table = state->table;
+    
+    // next statement after an ALTER must be TABLE
+    sql3token_t token = sql3lexer_next(state);
+    if (token != TOK_TABLE) return SQL3ERROR_UNSUPPORTEDSQL;
+    
+    // parse [schema.]name
+    sql3error_code err = sql3parse_schema_identifier(state);
+    if (err != SQL3ERROR_NONE) return err;
+    
+    // next token will tell us the alter table statment type
+    token = sql3lexer_next(state);
+    
+    // RENAME TO new-table-name
+    // RENAME [COLUMN] column-name TO new-column-name
+    // ADD [COLUMN] column-def
+    // DROP [COLUMN] column-name
+    
+    sql3token_t next = sql3lexer_peek(state);
+    
+    switch (token) {
+        case TOK_RENAME:
+            if (next == TOK_TO) {
+                sql3lexer_next(state);
+                table->type = SQL3ALTER_RENAME_TABLE;
+                
+                // new-table-name is mandatory
+                token = sql3lexer_next(state);
+                if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
+                
+                // copy new table name
+                table->new_name = state->identifier;
+                
+            } else {
+                if (next == TOK_COLUMN) sql3lexer_next(state);
+                table->type = SQL3ALTER_RENAME_COLUMN;
+                
+                // column-name is mandatory
+                token = sql3lexer_next(state);
+                if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
+                
+                // copy current column name
+                table->current_name = state->identifier;
+                
+                // parse TO
+                token = sql3lexer_next(state);
+                if (token != TOK_TO) return SQL3ERROR_SYNTAX;
+                
+                // copy new column name
+                table->new_name = state->identifier;
+            }
+            break;
+            
+        case TOK_ADD:
+            if (next == TOK_COLUMN) sql3lexer_next(state);
+            table->type = SQL3ALTER_ADD_COLUMN;
+            
+            // column-name is mandatory
+            token = sql3lexer_peek(state);
+            if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
+            
+            // parse column definition
+            sql3column *column = sql3parse_column(state);
+            if (!column) return SQL3ERROR_SYNTAX;
+            
+            // add column to columns array
+            ++table->num_columns;
+            table->columns = SQL3REALLOC(table->columns, sizeof(sql3column**) * table->num_columns);
+            if (!table->columns) return SQL3ERROR_MEMORY;
+            table->columns[table->num_columns-1] = column;
+            
+            break;
+            
+        case TOK_DROP:
+            if (next == TOK_COLUMN) sql3lexer_next(state);
+            table->type = SQL3ALTER_DROP_COLUMN;
+            
+            // column-name is mandatory
+            token = sql3lexer_next(state);
+            if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
+            
+            // copy current column name
+            table->current_name = state->identifier;
+            
+            break;
+            
+        default:
+            return SQL3ERROR_UNSUPPORTEDSQL;
+    }
+    
+    // check and consume optional ;
+    token = sql3lexer_peek(state);
+    if (token == TOK_SEMICOLON) sql3lexer_next(state);
+    
+    return SQL3ERROR_NONE;
+}
+
+static sql3error_code sql3parse_create (sql3state *state) {
+    // https://www.sqlite.org/lang_createtable.html
+    // CREATE [TEMP | TEMPORARY] TABLE [IF NOT EXISTS] [schema-name .]table-name ...
+    
+    sql3table *table = state->table;
+    
+    // set statement type
+    table->type = SQL3CREATE_TABLE;
+    
+    // next statement after a CREATE can be TEMP or a TABLE
+    sql3token_t token = sql3lexer_next(state);
+    if (token == TOK_TEMP) {
+        table->is_temporary = true;
+        
+        // parse next token (must be TABLE token)
+        token = sql3lexer_next(state);
+    }
+    
+    // assure TABLE token
+    if (token != TOK_TABLE) return SQL3ERROR_UNSUPPORTEDSQL;
+    
+    // check for IF NOT EXISTS clause
+    if (sql3lexer_peek(state) == TOK_IF) {
+        // consume IF
+        sql3lexer_next(state);
+        
+        // next must be NOT
+        if (sql3lexer_next(state) != TOK_NOT) return SQL3ERROR_SYNTAX;
+        
+        // next must be EXISTS
+        if (sql3lexer_next(state) != TOK_EXISTS) return SQL3ERROR_SYNTAX;
+        
+        // safely set the flag here
+        table->is_ifnotexists = true;
+    }
+    
+    // parse [schema.]name
+    sql3error_code err = sql3parse_schema_identifier(state);
+    if (err != SQL3ERROR_NONE) return err;
+    
+    // start parsing column and table constraints
+    
+    // '(' is mandatory here
+    token = sql3lexer_next(state);
+    if (token == TOK_AS) return SQL3ERROR_UNSUPPORTEDSQL;
+    if (token != TOK_OPEN_PARENTHESIS) return SQL3ERROR_SYNTAX;
+    
+    // parse column-def
+    while (1) {
+        token = sql3lexer_peek(state);
+        
+        // column name is mandatory here
+        if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
+        
+        // parse column definition
+        sql3column *column = sql3parse_column(state);
+        if (!column) return SQL3ERROR_SYNTAX;
+        
+        // add column to columns array
+        ++table->num_columns;
+        table->columns = SQL3REALLOC(table->columns, sizeof(sql3column**) * table->num_columns);
+        if (!table->columns) return SQL3ERROR_MEMORY;
+        table->columns[table->num_columns-1] = column;
+        
+        // check for optional comma
+        token = sql3lexer_peek(state);
+        if (token == TOK_COMMA) {
+            sql3lexer_next(state);    // consume comma
+            token = sql3lexer_peek(state);    // peek next token
+            
             if (token_is_table_constraint(token)) break;
             else continue;
-		}
+        }
         
         if (token == TOK_CLOSED_PARENTHESIS) {
             //sql3lexer_next(state);    // consume closed parenthesis
             token = sql3lexer_peek(state);
             break;
         }
-		
-		// if it is not an identifier -> column, a comma, a token_table_constraint
-		// nor a closed_parenthesis then it is a syntax error
-		return SQL3ERROR_SYNTAX;
-	}
-	
-	// parse optional table-constraint
-	while (token_is_table_constraint(token)) {
+        
+        // if it is not an identifier -> column, a comma, a token_table_constraint
+        // nor a closed_parenthesis then it is a syntax error
+        return SQL3ERROR_SYNTAX;
+    }
+    
+    // parse optional table-constraint
+    while (token_is_table_constraint(token)) {
         state->comment = &table->comment;
         
-		sql3tableconstraint *constraint = sql3parse_table_constraint(state);
-		if (!constraint) return SQL3ERROR_SYNTAX;
-		
-		// add column to columns array
-		++table->num_constraint;
-		table->constraints = SQL3REALLOC(table->constraints, sizeof(sql3tableconstraint**) * table->num_constraint);
-		if (!table->constraints) return SQL3ERROR_MEMORY;
-		table->constraints[table->num_constraint-1] = constraint;
-		
-		// check for optional comma
-		if (sql3lexer_peek(state) == TOK_COMMA) {
-			sql3lexer_next(state);	// consume comma
-			token = sql3lexer_peek(state);	// peek next token
-			continue;
-		}
-		
-		if (sql3lexer_peek(state) == TOK_CLOSED_PARENTHESIS) break;
-		
-		// if it is not a token_table_constraint nor a closed_parenthesis then it is a syntax error
-		return SQL3ERROR_SYNTAX;
-	}
-	
-	// ')' is mandatory here
-	token = sql3lexer_next(state);
-	if (token != TOK_CLOSED_PARENTHESIS) return SQL3ERROR_SYNTAX;
-	
+        sql3tableconstraint *constraint = sql3parse_table_constraint(state);
+        if (!constraint) return SQL3ERROR_SYNTAX;
+        
+        // add column to columns array
+        ++table->num_constraint;
+        table->constraints = SQL3REALLOC(table->constraints, sizeof(sql3tableconstraint**) * table->num_constraint);
+        if (!table->constraints) return SQL3ERROR_MEMORY;
+        table->constraints[table->num_constraint-1] = constraint;
+        
+        // check for optional comma
+        if (sql3lexer_peek(state) == TOK_COMMA) {
+            sql3lexer_next(state);    // consume comma
+            token = sql3lexer_peek(state);    // peek next token
+            continue;
+        }
+        
+        if (sql3lexer_peek(state) == TOK_CLOSED_PARENTHESIS) break;
+        
+        // if it is not a token_table_constraint nor a closed_parenthesis then it is a syntax error
+        return SQL3ERROR_SYNTAX;
+    }
+    
+    // ')' is mandatory here
+    token = sql3lexer_next(state);
+    if (token != TOK_CLOSED_PARENTHESIS) return SQL3ERROR_SYNTAX;
+    
     // set table comment reference inside state context
     state->comment = &table->comment;
     
     // check for optional TABLE options (WITHOUT ROWID and/or STRICT)
     if (sql3parse_table_options(state) != SQL3ERROR_NONE) return SQL3ERROR_SYNTAX;
-	
-	// check and consume optional ;
-	token = sql3lexer_peek(state);
-	if (token == TOK_SEMICOLON) sql3lexer_next(state);
     
-	return SQL3ERROR_NONE;
+    // check and consume optional ;
+    token = sql3lexer_peek(state);
+    if (token == TOK_SEMICOLON) sql3lexer_next(state);
+    
+    return SQL3ERROR_NONE;
+}
+
+static sql3error_code sql3parse (sql3state *state) {
+    // take a decision based on first token (CREATE or ALTER statements)
+    sql3token_t token = sql3lexer_next(state);
+    
+    if (token == TOK_CREATE) return sql3parse_create(state);
+    if (token == TOK_ALTER) return sql3parse_alter(state);
+    
+    return SQL3ERROR_UNSUPPORTEDSQL;
 }
 
 #pragma mark - Public Table Functions -
@@ -1108,6 +1251,16 @@ sql3string *sql3table_name (sql3table *table) {
 sql3string *sql3table_comment (sql3table *table) {
     CHECK_STR(table->comment);
     return &table->comment;
+}
+
+sql3string *sql3table_current_name (sql3table *table) {
+    CHECK_STR(table->current_name);
+    return &table->current_name;
+}
+
+sql3string *sql3table_new_name (sql3table *table) {
+    CHECK_STR(table->new_name);
+    return &table->new_name;
 }
 
 bool sql3table_is_temporary (sql3table *table) {
@@ -1142,6 +1295,10 @@ size_t sql3table_num_constraints (sql3table *table) {
 sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index) {
 	CHECK_IDX(index, table->num_constraint);
 	return table->constraints[index];
+}
+
+sql3statement_type sql3table_type (sql3table *table) {
+    return table->type;
 }
 
 void sql3table_free (sql3table *table) {
