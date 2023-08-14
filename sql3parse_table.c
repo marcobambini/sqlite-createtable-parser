@@ -122,7 +122,7 @@ typedef struct {
 	sql3table		*table;			    // table definition
 } sql3state;
 
-static sql3string temp_identifier = {.ptr = "TEMP", .length = 4};
+static sql3string temp_identifier = {.ptr = "temp", .length = 4};
 
 // MARK: - Macros -
 
