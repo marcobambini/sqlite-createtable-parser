@@ -152,11 +152,14 @@ void table_dump (sql3table *table) {
 ```
 
 ## IMPLEMENT a COMPLETE ALTER TABLE in SQLite
-SQLite supports only a limite subset of the [ALTER TABLE](https://www.sqlite.org/lang_altertable.html) sql command. In particular only TABLE RENAME and COLUMN ADD can be natively used. What if we need to change a column definition or dropping a column? Then a series of manual steps are required.
 
+SQLite supports a limited subset of [ALTER TABLE](https://www.sqlite.org/lang_altertable.html). The ALTER TABLE command in SQLite allows these alterations of an existing table: it can be renamed; a column can be renamed; a column can be added to it; or a column can be dropped from it.
 
-The strategy consists of creating a new table with the up-to-date schema and then copy data from the old table to the new one. To create the new table starting from the old one you need a way to extract complete information from a SQLite table and that's the main reason why I created this parser.
+Most SQL database engines store the schema already parsed into various system tables. On those database engines, ALTER TABLE merely has to make modifications to the corresponding system tables. SQLite is different in that it stores the schema in the sqlite_schema table as the original text of the CREATE statements that define the schema. Hence ALTER TABLE needs to revise the text of the CREATE statement. Doing so can be tricky for certain "creative" schema designs.
 
+The only schema altering commands directly supported by SQLite are the "rename table", "rename column", "add column", "drop column" commands shown above. However, applications can make other arbitrary changes to the format of a table using a simple sequence of operations. The steps to make arbitrary changes to the schema design of some table are as follows (to create the new table starting from the old one you need a way to extract complete information from a SQLite table and that's the main reason why I created this parser):
+
+// This algorithm needs to be revised based on new notes added to https://www.sqlite.org/lang_altertable.html
 
 ALTER TABLE algorithm looks like:
 ```sql
