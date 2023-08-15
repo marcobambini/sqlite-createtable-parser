@@ -159,7 +159,9 @@ Most SQL database engines store the schema already parsed into various system ta
 
 The only schema altering commands directly supported by SQLite are the "rename table", "rename column", "add column", "drop column" commands shown above. However, applications can make other arbitrary changes to the format of a table using a simple sequence of operations. The steps to make arbitrary changes to the schema design of some table are as follows (to create the new table starting from the old one you need a way to extract complete information from a SQLite table and that's the main reason why I created this parser):
 
-// This algorithm needs to be revised based on new notes added to https://www.sqlite.org/lang_altertable.html
+```c
+// The following algorithm needs to be revised based on new notes added to https://www.sqlite.org/lang_altertable.html
+```
 
 ALTER TABLE algorithm looks like:
 ```sql
