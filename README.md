@@ -192,7 +192,7 @@ PRAGMA foreign_keys=on;
 ## Speed and memory considerations
 The parser is blazing fast, mainly because very few memory allocations are performed and no copy operations are used between the sql string and the internal sql3string structs. Memory requirement is linearly proportional to the number of columns in the table.
 ```
-You can estimate memory usage (on a 64bit system) usign the following formula:
+You can estimate memory usage (on a 64bit system) using the following formula:
 N1: number of columns WITHOUT a foreign key constraint
 N2: number of columns WITH a foreign key constraint
 N3: number of indexed columns in table constraint
