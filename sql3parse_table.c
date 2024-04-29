@@ -67,6 +67,11 @@ struct sql3column {
 	sql3foreignkey  *foreignkey_clause;             // foreign key clause (can be NULL)
 };
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4201) // nonstandard extension used: nameless struct/union
+#endif
+
 struct sql3tableconstraint {
 	sql3constraint_type	type;			            // table constraint type
 	sql3string          name;                       // constraint name (can be NULL)
@@ -89,6 +94,10 @@ struct sql3tableconstraint {
         };
 	};
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 struct sql3table {
 	sql3string		name;			    // table name
@@ -332,7 +341,7 @@ sql3token_t sql3lexer_comment (sql3state *state) {
             // c-style comments need two characters to check
             sql3char c2 = PEEK;
             if ((c1 == '*') && (c2 == '/')) {
-                NEXT; // consume c2
+                (void) NEXT; // consume c2
                 break;
             }
         } else {
@@ -766,7 +775,7 @@ static sql3string sql3parse_literal (sql3state *state) {
             if (c == escaped) {
                 sql3char c2 = PEEK;
                 if (c2 != escaped) break;
-                NEXT;
+                (void) NEXT;
             }
         }
     } else {
@@ -1236,7 +1245,9 @@ static sql3error_code sql3parse (sql3state *state) {
     return SQL3ERROR_UNSUPPORTEDSQL;
 }
 
+#if defined(__clang__)
 #pragma mark - Public Table Functions -
+#endif
 
 sql3string *sql3table_schema (sql3table *table) {
 	CHECK_STR(table->schema);
