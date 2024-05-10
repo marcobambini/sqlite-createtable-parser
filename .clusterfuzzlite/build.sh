@@ -1,8 +1,5 @@
 #!/bin/bash
-find . -name "*.c" -exec $CC $CFLAGS -I./src -c {} \;
-find . -name "*.o" -exec cp {} . \;
-
-rm -f ./test*.o
+$CC $CFLAGS -c sql3parse_table.c
 llvm-ar rcs libfuzz.a *.o
 
 
