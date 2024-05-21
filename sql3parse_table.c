@@ -135,7 +135,7 @@ static sql3string temp_identifier = {.ptr = "temp", .length = 4};
 
 // MARK: - Macros -
 
-#define IS_EOF				            (state->offset == state->size)
+#define IS_EOF				            (state->offset >= state->size)
 #define PEEK				            (state->buffer[state->offset])
 #define PEEK2				            (state->buffer[state->offset+1])
 #define NEXT				            (state->buffer[state->offset++])
