@@ -114,6 +114,7 @@ size_t      sql3table_num_constraints (sql3table *table);
 sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index);
 void        sql3table_free (sql3table *table);
 sql3statement_type sql3table_type (sql3table *table);
+const char  *sql3table_type_desc (sql3table *table);
 sql3string  *sql3table_current_name (sql3table *table);
 sql3string  *sql3table_new_name (sql3table *table);
 	

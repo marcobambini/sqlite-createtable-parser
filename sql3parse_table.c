@@ -135,11 +135,12 @@ static sql3string temp_identifier = {.ptr = "temp", .length = 4};
 
 // MARK: - Macros -
 
-#define IS_EOF				            (state->offset >= state->size)
-#define PEEK				            (state->buffer[state->offset])
-#define PEEK2				            (state->buffer[state->offset+1])
-#define NEXT				            (state->buffer[state->offset++])
-#define SKIP_ONE			            ++state->offset;
+#define IS_EOF                         (state->offset >= state->size)
+#define CAN_PEEKN(n)                   (state->offset + (n) < state->size)
+#define PEEK                           (IS_EOF ? 0 : (unsigned char)state->buffer[state->offset])
+#define PEEKN(n)                       (CAN_PEEKN(n) ? (unsigned char)state->buffer[state->offset + (n)] : 0)
+#define NEXT                           (IS_EOF ? 0 : (unsigned char)state->buffer[state->offset++])
+#define SKIP_ONE                       ++state->offset;
 #define CHECK_STR(s)			        if (!s.ptr) return NULL
 #define CHECK_IDX(idx1,idx2)            if (idx1>=idx2) return NULL
 
@@ -189,19 +190,21 @@ static bool symbol_is_toskip (sql3char c) {
 }
 
 static bool symbol_is_comment (sql3char c, sql3state *state) {
-	if ((c == '-') && (PEEK2 == '-')) return true;
-	if ((c == '/') && (PEEK2 == '*')) return true;
+	if ((c == '-') && (PEEKN(1) == '-')) return true;
+	if ((c == '/') && (PEEKN(1) == '*')) return true;
 	return false;
 }
 
 static bool symbol_is_alpha (sql3char c) {
 	if (c == '_') return true;
-	return isalpha((int)c);
+	unsigned char uc = (unsigned char)c;
+	return isalpha(uc);
 }
 
 static bool symbol_is_identifier (sql3char c) {
 	// when called I am already sure first character is alpha so next valid characters are alpha, digit and _
-	return ((isalpha(c)) || (isdigit(c)) || (c == '_'));
+	unsigned char uc = (unsigned char)c;
+	return ((isalpha(uc)) || (isdigit(uc)) || (uc == '_'));
 }
 
 static bool symbol_is_escape (sql3char c) {
@@ -397,27 +400,33 @@ sql3token_t sql3lexer_alpha (sql3state *state) {
 }
 
 sql3token_t sql3lexer_escape (sql3state *state) {
-	sql3char c, escaped = NEXT; // consume escaped char
+	sql3char c = 0, escaped = NEXT; // consume escaped char
 	if (escaped == '[') escaped = ']'; // mysql compatibility mode
-	
-	// read until EOF or closing escape character
+
+	// read until EOF or closing escape character, supporting doubled escape chars
 	size_t offset = state->offset;
-	do {
+	while (!IS_EOF) {
 		c = NEXT;
-	} while ((c != 0) && (c != escaped));
-	
+		if (c == 0) break;
+		if (c == escaped) {
+			if (PEEK == escaped) { (void)NEXT; continue; }
+			break;
+		}
+	}
+
 	const char *ptr = &state->buffer[offset];
 	size_t length = state->offset - (offset + 1);
-	
+
 	// sanity check on closing escaped character
 	if (c != escaped) return TOK_ERROR;
-	
+
 	// setup internal identifier
 	state->identifier.ptr = ptr;
 	state->identifier.length = length;
-	
+
 	return TOK_IDENTIFIER;
 }
+
 
 static bool sql3lexer_checkskip (sql3state *state) {
     sql3char c;
@@ -445,13 +454,17 @@ loop:
 }
 
 static sql3token_t sql3lexer_peek (sql3state *state) {
-	// peek calls sql3lexer_next and reset its state after the call
-	size_t saved = state->offset;
+	// peek calls sql3lexer_next and resets its state after the call
+	size_t saved_off = state->offset;
+	sql3string saved_id = state->identifier;
+	sql3string *saved_comment = state->comment;
 	sql3token_t token = sql3lexer_next(state);
-	state->offset = saved;
-    
+	state->offset = saved_off;
+	state->identifier = saved_id;
+	state->comment = saved_comment;
 	return token;
 }
+
 
 // MARK: - Internal Parser -
 
@@ -488,6 +501,12 @@ static sql3error_code sql3parse_optionalconflitclause (sql3state *state, sql3con
 	}
 	
 	return SQL3ERROR_NONE;
+}
+
+static void sql3free_foreignkey(sql3foreignkey *fk) {
+    if (!fk) return;
+    // shallow slices only; nothing to free inside currently
+    SQL3FREE(fk);
 }
 
 static sql3foreignkey *sql3parse_foreignkey_clause (sql3state *state) {
@@ -593,7 +612,7 @@ fk_loop:
 	return fk;
 	
 error:
-	if (fk) SQL3FREE(fk);
+	if (fk) sql3free_foreignkey(fk);
 	return NULL;
 }
 
@@ -635,6 +654,14 @@ static sql3error_code sql3parse_table_options (sql3state *state) {
     }
     
     return SQL3ERROR_NONE;
+}
+
+static void sql3parse_table_constraint_free (sql3tableconstraint *c) {
+    if (!c) return;
+    if (c->indexed_columns) SQL3FREE(c->indexed_columns);
+    if (c->foreignkey_name) SQL3FREE(c->foreignkey_name);
+    if (c->foreignkey_clause) sql3free_foreignkey(c->foreignkey_clause);
+    SQL3FREE(c);
 }
 
 static sql3tableconstraint *sql3parse_table_constraint (sql3state *state) {
@@ -746,7 +773,7 @@ static sql3tableconstraint *sql3parse_table_constraint (sql3state *state) {
 	return constraint;
 	
 error:
-	if (constraint) SQL3FREE(constraint);
+    sql3parse_table_constraint_free(constraint);
 	return NULL;
 }
 
@@ -796,27 +823,22 @@ static sql3string sql3parse_literal (sql3state *state) {
 
 static sql3string sql3parse_expression (sql3state *state) {
     // '(' expression ')'
-    
     sql3lexer_checkskip(state);
-    
     size_t offset = state->offset;
     sql3char c = NEXT;      // '('
     uint32_t count = 1;     // count number of '('
-    
-    while (true) {
+    while (!IS_EOF) {
         c = NEXT;
         if (c == '(') ++count;
-        else if (c == ')') {
-            if (--count == 0) break;
-        }
+        else if (c == ')') { if (--count == 0) break; }
+        else if (c == 0) break;
     }
-    
     const char *ptr = &state->buffer[offset];
     size_t length = state->offset - offset;
-    
     sql3string result = {ptr, length};
     return result;
 }
+
 
 static sql3error_code sql3parse_column_type (sql3state *state, sql3column *column) {
 	// column type is reported as a string
@@ -1059,6 +1081,8 @@ static sql3error_code sql3parse_alter (sql3state *state) {
                 if (token != TOK_TO) return SQL3ERROR_SYNTAX;
                 
                 // copy new column name
+                token = sql3lexer_next(state);
+                if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
                 table->new_name = state->identifier;
             }
             break;
@@ -1077,8 +1101,7 @@ static sql3error_code sql3parse_alter (sql3state *state) {
             
             // add column to columns array
             ++table->num_columns;
-            table->columns = SQL3REALLOC(table->columns, sizeof(sql3column**) * table->num_columns);
-            if (!table->columns) return SQL3ERROR_MEMORY;
+            do { void *__newp = SQL3REALLOC(table->columns, sizeof(sql3column*) * table->num_columns); if (!__newp) return SQL3ERROR_MEMORY; table->columns = (sql3column**)__newp; } while(0);
             table->columns[table->num_columns-1] = column;
             
             break;
@@ -1167,7 +1190,7 @@ static sql3error_code sql3parse_create (sql3state *state) {
         
         // add column to columns array
         ++table->num_columns;
-        table->columns = SQL3REALLOC(table->columns, sizeof(sql3column**) * table->num_columns);
+        table->columns = SQL3REALLOC(table->columns, sizeof(sql3column*) * table->num_columns);
         if (!table->columns) return SQL3ERROR_MEMORY;
         table->columns[table->num_columns-1] = column;
         
@@ -1308,6 +1331,17 @@ sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index) {
 
 sql3statement_type sql3table_type (sql3table *table) {
     return table->type;
+}
+
+const char *sql3table_type_desc (sql3table *table) {
+    switch (table->type) {
+        case SQL3CREATE_UNKNOWN: return "UNKNOWN";
+        case SQL3CREATE_TABLE: return "CREATE TABLE";
+        case SQL3ALTER_RENAME_TABLE: return "ALTER TABLE RENAME";
+        case SQL3ALTER_RENAME_COLUMN: return "ALTER TABLE RENAME COLUMN";
+        case SQL3ALTER_ADD_COLUMN: return "ALTER TABLE ADD COLUMN";
+        case SQL3ALTER_DROP_COLUMN: return "ALTER TABLE DROP COLUMN";
+    }
 }
 
 void sql3table_free (sql3table *table) {

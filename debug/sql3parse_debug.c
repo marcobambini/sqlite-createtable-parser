@@ -304,6 +304,49 @@ static void table_dump_alter (sql3table *table) {
     }
 }
 
+/*
+static void print_sql3string(const char *label, sql3string *s) {
+    if (!s) return;
+    size_t len=0;
+    const char *p = sql3string_ptr(s, &len);
+    if (p && len) printf("%s: %.*s\n", label, (int)len, p);
+}
+
+static void table_print (sql3table *t) {
+    if (!t) {printf("NULL table\n"); return;}
+    
+    printf("Type: %s\n", sql3table_type_desc(t));
+    print_sql3string("Schema", sql3table_schema(t));
+    print_sql3string("Table", sql3table_name(t));
+    print_sql3string("CurrentName", sql3table_current_name(t));
+    print_sql3string("NewName", sql3table_new_name(t));
+    printf("Temporary: %d, IF NOT EXISTS: %d, STRICT: %d, WITHOUT ROWID: %d\n",
+        (int)sql3table_is_temporary(t),
+        (int)sql3table_is_ifnotexists(t),
+        (int)sql3table_is_strict(t),
+        (int)sql3table_is_withoutrowid(t)
+    );
+    size_t ncols = sql3table_num_columns(t);
+    printf("Columns: %zu\n", ncols);
+    for (size_t i=0;i<ncols;++i) {
+        sql3column *c = sql3table_get_column(t, i);
+        printf("  - ");
+        print_sql3string("name", sql3column_name(c));
+        print_sql3string("type", sql3column_type(c));
+        print_sql3string("len", sql3column_length(c));
+        if (sql3column_is_primarykey(c)) printf("    PK (order=%d)\n", (int)sql3column_pk_order(c));
+        if (sql3column_is_autoincrement(c)) printf("    AUTOINCREMENT\n");
+        if (sql3column_is_notnull(c)) printf("    NOT NULL\n");
+        if (sql3column_is_unique(c)) printf("    UNIQUE\n");
+        print_sql3string("default", sql3column_default_expr(c));
+        print_sql3string("check", sql3column_check_expr(c));
+        print_sql3string("collate", sql3column_collate_name(c));
+        print_sql3string("comment", sql3column_comment(c));
+    }
+    print_sql3string("TableComment", sql3table_comment(t));
+}
+*/
+
 //MARK: - Public -
 
 void table_dump (sql3table *table) {
