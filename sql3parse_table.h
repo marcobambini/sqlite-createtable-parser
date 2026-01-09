@@ -121,6 +121,7 @@ sql3string  *sql3table_new_name (sql3table *table);
 // Table Constraint
 sql3string *sql3table_constraint_name (sql3tableconstraint *tconstraint);
 sql3constraint_type sql3table_constraint_type (sql3tableconstraint *tconstraint);
+bool sql3table_constraint_is_autoincrement(sql3tableconstraint* tconstraint);
 size_t sql3table_constraint_num_idxcolumns (sql3tableconstraint *tconstraint);
 sql3idxcolumn *sql3table_constraint_get_idxcolumn (sql3tableconstraint *tconstraint, size_t index);
 sql3conflict_clause sql3table_constraint_conflict_clause (sql3tableconstraint *tconstraint);

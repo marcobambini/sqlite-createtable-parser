@@ -35,6 +35,7 @@ int main (void) {
     test_case("CREATE TABLE ct (d INT DEFAULT ( (1+2) ), e TEXT DEFAULT '))')");
     
     test_case("CREATE TABLE foo (col1 INTEGER PRIMARY KEY AUTOINCREMENT, col2 TEXT, col3 TEXT);");
+    test_case("CREATE TABLE tcpkai (col INTEGER, PRIMARY KEY (col AUTOINCREMENT));");
     test_case("CREATE TABLE t1(x INTEGER PRIMARY KEY, y);");
     test_case("create table employee(first varchar(15),last varchar(20),age number(3),address varchar(30),city varchar(20),state varchar(20));");
     test_case("CREATE TEMP TABLE IF NOT EXISTS main.foo /* This is the main table */ (col1 INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, col2 TEXT DEFAULT CURRENT_TIMESTAMP, col3 FLOAT(8.12), col4 BLOB COLLATE BINARY /* Use this column for storing pictures */, CONSTRAINT tbl1 UNIQUE (col1 COLLATE c1 ASC, col2 COLLATE c2 DESC)) WITHOUT ROWID; -- this is a line comment");
