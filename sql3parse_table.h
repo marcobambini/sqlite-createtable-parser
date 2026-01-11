@@ -97,6 +97,12 @@ typedef enum {
     SQL3ALTER_DROP_COLUMN
 } sql3statement_type;
 	
+typedef enum {
+	SQL3GENTYPE_NONE,
+	SQL3GENTYPE_STORED,
+	SQL3GENTYPE_VIRTUAL
+} sql3gen_type;
+
 // Main http://www.sqlite.org/lang_createtable.html
 sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *error);
 
@@ -147,6 +153,8 @@ sql3string *sql3column_check_expr (sql3column *column);
 sql3string *sql3column_default_expr (sql3column *column);
 sql3string *sql3column_collate_name (sql3column *column);
 sql3foreignkey *sql3column_foreignkey_clause (sql3column *column);
+sql3string* sql3column_generated_expr(sql3column* column);
+sql3gen_type sql3column_generated_type(sql3column* column);
 	
 // Foreign Key
 sql3string *sql3foreignkey_table (sql3foreignkey *fk);
