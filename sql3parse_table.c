@@ -87,7 +87,7 @@ struct sql3tableconstraint {
         };
         
         // if type SQL3TABLECONSTRAINT_CHECK
-        sql3string      check_expr;                 // check expression (always NULL in this version)
+        sql3string      check_expr;                 // check expression
         
         // if type SQL3TABLECONSTRAINT_FOREIGNKEY
         struct {
@@ -476,6 +476,24 @@ static sql3token_t sql3lexer_peek (sql3state *state) {
 
 // MARK: - Internal Parser -
 
+static sql3string sql3parse_expression (sql3state *state) {
+    // '(' expression ')'
+    sql3lexer_checkskip(state);
+    size_t offset = state->offset;
+    sql3char c = NEXT;      // '('
+    uint32_t count = 1;     // count number of '('
+    while (!IS_EOF) {
+        c = NEXT;
+        if (c == '(') ++count;
+        else if (c == ')') { if (--count == 0) break; }
+        else if (c == 0) break;
+    }
+    const char *ptr = &state->buffer[offset];
+    size_t length = state->offset - offset;
+    sql3string result = {ptr, length};
+    return result;
+}
+
 static sql3error_code sql3parse_optionalorder (sql3state *state, sql3order_clause *clause) {
 	sql3token_t token = sql3lexer_peek(state);
 	*clause = SQL3ORDER_NONE;
@@ -708,9 +726,8 @@ static sql3tableconstraint *sql3parse_table_constraint (sql3state *state) {
 	if (token == TOK_CHECK) {
 		token = sql3lexer_next(state); // consume token
 		constraint->type = SQL3TABLECONSTRAINT_CHECK;
-		
-		// expressions are not supported in this version
-		goto error;
+		// expressions are extracted (not fully parsed) in this version
+		constraint->check_expr = sql3parse_expression(state);
 	}
 	// same code to execute for PRIMARY KEY or UNIQUE constraint
 	else if ((token == TOK_PRIMARY) || (token == TOK_UNIQUE)) {
@@ -842,25 +859,6 @@ static sql3string sql3parse_literal (sql3state *state) {
     return result;
 }
 
-static sql3string sql3parse_expression (sql3state *state) {
-    // '(' expression ')'
-    sql3lexer_checkskip(state);
-    size_t offset = state->offset;
-    sql3char c = NEXT;      // '('
-    uint32_t count = 1;     // count number of '('
-    while (!IS_EOF) {
-        c = NEXT;
-        if (c == '(') ++count;
-        else if (c == ')') { if (--count == 0) break; }
-        else if (c == 0) break;
-    }
-    const char *ptr = &state->buffer[offset];
-    size_t length = state->offset - offset;
-    sql3string result = {ptr, length};
-    return result;
-}
-
-
 static sql3error_code sql3parse_column_type (sql3state *state, sql3column *column) {
 	// column type is reported as a string
 	size_t offset = 0;
@@ -958,7 +956,7 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
                 //      CURRENT_TIMESTAMP
                 // '(' expression ')'
                 
-				// expressions are not supported in this version
+				// expressions are extracted (not fully parsed) in this version
 				if (sql3lexer_peek(state) == TOK_OPEN_PARENTHESIS) column->default_expr = sql3parse_expression(state);
 				else column->default_expr = sql3parse_literal(state);
 				break;
