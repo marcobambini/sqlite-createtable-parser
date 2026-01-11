@@ -25,7 +25,8 @@ typedef enum {
 	// constraints
 	TOK_CONSTRAINT, TOK_PRIMARY, TOK_KEY, TOK_UNIQUE, TOK_CHECK, TOK_FOREIGN,
 	TOK_ON, TOK_CONFLICT, TOK_ROLLBACK, TOK_ABORT, TOK_FAIL, TOK_IGNORE, TOK_REPLACE,
-	TOK_COLLATE, TOK_ASC, TOK_DESC, TOK_AUTOINCREMENT,
+	TOK_COLLATE, TOK_ASC, TOK_DESC, TOK_AUTOINCREMENT, TOK_GENERATED, TOK_ALWAYS,
+	TOK_STORED, TOK_VIRTUAL,
 	
 	// foreign key clause
 	TOK_REFERENCES, TOK_DELETE, TOK_UPDATE, TOK_SET, TOK_NULL, TOK_DEFAULT, TOK_CASCADE,
@@ -70,6 +71,8 @@ struct sql3column {
 	sql3string          default_expr;               // default expression (can be NULL)
 	sql3string          collate_name;               // collate name (can be NULL)
 	sql3foreignkey      *foreignkey_clause;         // foreign key clause (can be NULL)
+	sql3string          generated_expr;             // generated expression (can be NULL)
+	sql3gen_type        generated_type;             // generated type
 };
 
 struct sql3tableconstraint {
@@ -225,7 +228,8 @@ static bool symbol_is_punctuation (sql3char c) {
 
 static bool token_is_column_constraint (sql3token_t t) {
 	return ((t == TOK_CONSTRAINT) || (t == TOK_PRIMARY) || (t == TOK_NOT) || (t == TOK_UNIQUE) ||
-			(t == TOK_CHECK) || (t == TOK_DEFAULT)  || (t == TOK_COLLATE) || (t == TOK_REFERENCES));
+			(t == TOK_CHECK) || (t == TOK_DEFAULT)  || (t == TOK_COLLATE) || (t == TOK_REFERENCES) ||
+			(t == TOK_GENERATED) || (t == TOK_AS));
 }
 
 static bool token_is_table_constraint (sql3token_t t) {
@@ -283,6 +287,8 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
         if (str_nocasencmp(ptr, "strict", length) == 0) return TOK_STRICT;
         if (str_nocasencmp(ptr, "rename", length) == 0) return TOK_RENAME;
         if (str_nocasencmp(ptr, "column", length) == 0) return TOK_COLUMN;
+		if (str_nocasencmp(ptr, "always", length) == 0) return TOK_ALWAYS;
+		if (str_nocasencmp(ptr, "stored", length) == 0) return TOK_STORED;
 		break;
 		
 		case 7:
@@ -293,6 +299,7 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 		if (str_nocasencmp(ptr, "replace", length) == 0) return TOK_REPLACE;
 		if (str_nocasencmp(ptr, "cascade", length) == 0) return TOK_CASCADE;
 		if (str_nocasencmp(ptr, "foreign", length) == 0) return TOK_FOREIGN;
+		if (str_nocasencmp(ptr, "virtual", length) == 0) return TOK_VIRTUAL;
 		break;
 			
 		case 8:
@@ -306,6 +313,7 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 		if (str_nocasencmp(ptr, "temporary", length) == 0) return TOK_TEMP;
 		if (str_nocasencmp(ptr, "initially", length) == 0) return TOK_INITIALLY;
 		if (str_nocasencmp(ptr, "immediate", length) == 0) return TOK_IMMEDIATE;
+		if (str_nocasencmp(ptr, "generated", length) == 0) return TOK_GENERATED;
 		break;
 			
 		case 10:
@@ -501,6 +509,19 @@ static sql3error_code sql3parse_optionalconflitclause (sql3state *state, sql3con
 		else return SQL3ERROR_SYNTAX;
 	}
 	
+	return SQL3ERROR_NONE;
+}
+
+static sql3error_code sql3parse_optionalgentype(sql3state* state, sql3gen_type* type) {
+	sql3token_t token = sql3lexer_peek(state);
+	*type = SQL3GENTYPE_NONE;
+
+	if ((token == TOK_STORED) || (token == TOK_VIRTUAL)) {
+		sql3lexer_next(state);	// consume token
+		if (token == TOK_STORED) *type = SQL3GENTYPE_STORED;
+		else *type = SQL3GENTYPE_VIRTUAL;
+	}
+
 	return SQL3ERROR_NONE;
 }
 
@@ -961,6 +982,23 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 				sql3foreignkey *fk = sql3parse_foreignkey_clause(state);
 				if (!fk) return SQL3ERROR_SYNTAX;
 				column->foreignkey_clause = fk;
+			} break;
+
+			case TOK_GENERATED:
+			case TOK_AS: {
+				if (token == TOK_GENERATED) {
+					token = sql3lexer_next(state);
+					// 'column-constraint' syntax indicates that TOK_ALWAYS is
+					// mandatory but SQLite accepts the statement without it.
+					if (token == TOK_ALWAYS) token = sql3lexer_next(state);
+					if (token != TOK_AS) return SQL3ERROR_SYNTAX;
+				}
+				token = sql3lexer_peek(state);
+				if (token != TOK_OPEN_PARENTHESIS) return SQL3ERROR_SYNTAX;
+
+				// expressions are extracted (not fully parsed) in this version
+				column->generated_expr = sql3parse_expression(state);
+				if (sql3parse_optionalgentype(state, &column->generated_type) != SQL3ERROR_NONE) return SQL3ERROR_SYNTAX;
 			} break;
 				
 			default:
@@ -1517,6 +1555,15 @@ sql3string *sql3column_collate_name (sql3column *column) {
 
 sql3foreignkey *sql3column_foreignkey_clause (sql3column *column) {
 	return column->foreignkey_clause;
+}
+
+sql3string* sql3column_generated_expr(sql3column* column) {
+	CHECK_STR(column->generated_expr);
+	return &column->generated_expr;
+}
+
+sql3gen_type sql3column_generated_type(sql3column* column) {
+	return column->generated_type;
 }
 
 // MARK: - Public Foreign Key Functions -

@@ -51,6 +51,14 @@ static const char *sql3constraint_type_str (sql3constraint_type type) {
 	}
 }
 
+static const char *sql3generated_type_str (sql3gen_type type) {
+	switch (type) {
+		case SQL3GENTYPE_NONE: return "NONE";
+		case SQL3GENTYPE_STORED: return "STORED";
+		case SQL3GENTYPE_VIRTUAL: return "VIRTUAL";
+	}
+}
+
 //MARK: - Dump Code -
 
 static void sql3string_dump (sql3string *ptr, const char *label) {
@@ -148,6 +156,10 @@ static void sql3column_dump (sql3column *column) {
 	clause = sql3column_unique_conflictclause(column);
 	if (clause != SQL3CONFLICT_NONE)
 		printf("Unique Conflict Cause: %s\n", sql3conflict_clause_str(clause));
+
+	sql3gen_type gen_type = sql3column_generated_type(column);
+	if (gen_type != SQL3GENTYPE_NONE)
+		printf("Generated Type: %s\n", sql3generated_type_str(gen_type));
 	
 	// check expr
 	ptr = sql3column_check_expr(column);
@@ -164,6 +176,10 @@ static void sql3column_dump (sql3column *column) {
 	// foreign key
 	sql3foreignkey *fk = sql3column_foreignkey_clause(column);
 	sql3foreignkey_dump(fk);
+
+	// generated expr
+	ptr = sql3column_generated_expr(column);
+	sql3string_dump(ptr, "Generated Expression");
 }
 
 static void sql3tableconstraint_dump (sql3tableconstraint *constraint) {

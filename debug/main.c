@@ -55,6 +55,7 @@ int main (void) {
         , test -- test 123\n\
         INTEGER, UNIQUE (flags /* Hello World*/, test) -- This is another table comment\n\
         );");
+    test_case("CREATE TABLE Sales(Price INT, Qty INT, Total INT GENERATED ALWAYS AS (Price*Qty) VIRTUAL, Item TEXT)");
     
     // https://www.sqlite.org/lang_altertable.html
     test_case("ALTER TABLE foo RENAME TO bar");
