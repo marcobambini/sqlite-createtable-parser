@@ -86,6 +86,8 @@ sql3string          *sql3column_check_expr (sql3column *column);
 sql3string          *sql3column_default_expr (sql3column *column);
 sql3string          *sql3column_collate_name (sql3column *column);
 sql3foreignkey      *sql3column_foreignkey_clause (sql3column *column);
+sql3string          *sql3column_generated_expr (sql3column* column);
+sql3gen_type        sql3column_generated_type (sql3column* column);
 	
 // Foreign key
 sql3string          *sql3foreignkey_table (sql3foreignkey *fk);
