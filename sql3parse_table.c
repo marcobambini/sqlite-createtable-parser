@@ -1433,7 +1433,7 @@ sql3constraint_type sql3table_constraint_type (sql3tableconstraint *tconstraint)
 	return tconstraint->type;
 }
 
-bool sql3table_constraint_is_autoincrement(sql3tableconstraint* tconstraint) {
+bool sql3table_constraint_is_autoincrement (sql3tableconstraint* tconstraint) {
 	if (tconstraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) return false;
 	return tconstraint->is_autoincrement;
 }
@@ -1555,12 +1555,12 @@ sql3foreignkey *sql3column_foreignkey_clause (sql3column *column) {
 	return column->foreignkey_clause;
 }
 
-sql3string* sql3column_generated_expr(sql3column* column) {
+sql3string* sql3column_generated_expr (sql3column* column) {
 	CHECK_STR(column->generated_expr);
 	return &column->generated_expr;
 }
 
-sql3gen_type sql3column_generated_type(sql3column* column) {
+sql3gen_type sql3column_generated_type (sql3column* column) {
 	return column->generated_type;
 }
 
