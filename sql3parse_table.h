@@ -127,6 +127,7 @@ sql3string  *sql3table_new_name (sql3table *table);
 // Table Constraint
 sql3string *sql3table_constraint_name (sql3tableconstraint *tconstraint);
 sql3constraint_type sql3table_constraint_type (sql3tableconstraint *tconstraint);
+bool sql3table_constraint_is_autoincrement (sql3tableconstraint* tconstraint);
 size_t sql3table_constraint_num_idxcolumns (sql3tableconstraint *tconstraint);
 sql3idxcolumn *sql3table_constraint_get_idxcolumn (sql3tableconstraint *tconstraint, size_t index);
 sql3conflict_clause sql3table_constraint_conflict_clause (sql3tableconstraint *tconstraint);
@@ -153,8 +154,8 @@ sql3string *sql3column_check_expr (sql3column *column);
 sql3string *sql3column_default_expr (sql3column *column);
 sql3string *sql3column_collate_name (sql3column *column);
 sql3foreignkey *sql3column_foreignkey_clause (sql3column *column);
-sql3string* sql3column_generated_expr(sql3column* column);
-sql3gen_type sql3column_generated_type(sql3column* column);
+sql3string* sql3column_generated_expr (sql3column* column);
+sql3gen_type sql3column_generated_type (sql3column* column);
 	
 // Foreign Key
 sql3string *sql3foreignkey_table (sql3foreignkey *fk);

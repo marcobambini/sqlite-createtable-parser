@@ -190,6 +190,11 @@ static void sql3tableconstraint_dump (sql3tableconstraint *constraint) {
 	sql3string *ptr = sql3table_constraint_name(constraint);
 	sql3string_dump(ptr, "Constraint Name");
 	
+	if (type == SQL3TABLECONSTRAINT_PRIMARYKEY) {
+		// autoincrement flag
+		printf("Autoincrement: %d\n", sql3table_constraint_is_autoincrement(constraint));
+	}
+
 	if ((type == SQL3TABLECONSTRAINT_PRIMARYKEY) || (type == SQL3TABLECONSTRAINT_UNIQUE)) {
 		// indexed columns
 		size_t num_idx = sql3table_constraint_num_idxcolumns(constraint);

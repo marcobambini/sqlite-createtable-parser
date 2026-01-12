@@ -84,6 +84,7 @@ struct sql3tableconstraint {
             size_t              num_indexed;        // number of indexed columns
             sql3idxcolumn       *indexed_columns;   // array fo indexed columns
             sql3conflict_clause conflict_clause;    // conflict clause
+            bool                is_autoincrement;   // autoincrement flag (only for for SQL3TABLECONSTRAINT_PRIMARYKEY and num_indexed == 1)
         };
         
         // if type SQL3TABLECONSTRAINT_CHECK
@@ -767,9 +768,17 @@ static sql3tableconstraint *sql3parse_table_constraint (sql3state *state) {
 			constraint->indexed_columns[constraint->num_indexed-1] = column;
 			
 			token = sql3lexer_peek(state);
+			if (token == TOK_AUTOINCREMENT) {
+				sql3lexer_next(state); // consume TOK_AUTOINCREMENT
+				if (constraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) goto error;
+				constraint->is_autoincrement = true;
+				token = sql3lexer_peek(state);
+			}
 			if (token == TOK_COMMA) sql3lexer_next(state); // consume TOK_COMMA
 			
 		} while (token == TOK_COMMA);
+
+		if (constraint->is_autoincrement && (constraint->num_indexed != 1)) goto error;
 		
 		if (sql3lexer_next(state) != TOK_CLOSED_PARENTHESIS) goto error;
 		if (sql3parse_optionalconflitclause(state, &constraint->conflict_clause) != SQL3ERROR_NONE) goto error;
@@ -1424,6 +1433,11 @@ sql3constraint_type sql3table_constraint_type (sql3tableconstraint *tconstraint)
 	return tconstraint->type;
 }
 
+bool sql3table_constraint_is_autoincrement (sql3tableconstraint* tconstraint) {
+	if (tconstraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) return false;
+	return tconstraint->is_autoincrement;
+}
+
 size_t sql3table_constraint_num_idxcolumns (sql3tableconstraint *tconstraint) {
 	if ((tconstraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) && (tconstraint->type != SQL3TABLECONSTRAINT_UNIQUE)) return 0;
 	return tconstraint->num_indexed;
@@ -1541,12 +1555,12 @@ sql3foreignkey *sql3column_foreignkey_clause (sql3column *column) {
 	return column->foreignkey_clause;
 }
 
-sql3string* sql3column_generated_expr(sql3column* column) {
+sql3string* sql3column_generated_expr (sql3column* column) {
 	CHECK_STR(column->generated_expr);
 	return &column->generated_expr;
 }
 
-sql3gen_type sql3column_generated_type(sql3column* column) {
+sql3gen_type sql3column_generated_type (sql3column* column) {
 	return column->generated_type;
 }
 
