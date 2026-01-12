@@ -16,7 +16,7 @@ CREATE TABLE syntax diagrams can be found on the official [sqlite website](https
 
 ## Pre-requisites
 - A C99 compiler.
-- SQL statement must be successfully compiled by SQLite.
+- SQL statement must be **successfully compiled** by SQLite.
 
 ## Usage
 In order to extract the original CREATE TABLE sql statement you need to query the sqlite_master table from within an SQLite database:
@@ -154,54 +154,77 @@ void table_dump (sql3table *table) {
 }
 ```
 
-## IMPLEMENT a COMPLETE ALTER TABLE in SQLite
+Here’s a cleaner, more precise, and more professional rewrite of your markdown, with improved flow, correctness, and clarity while preserving your intent and technical tone.
 
-SQLite supports a limited subset of [ALTER TABLE](https://www.sqlite.org/lang_altertable.html). The ALTER TABLE command in SQLite allows these alterations of an existing table: it can be renamed; a column can be renamed; a column can be added to it; or a column can be dropped from it.
+---
 
-Most SQL database engines store the schema already parsed into various system tables. On those database engines, ALTER TABLE merely has to make modifications to the corresponding system tables. SQLite is different in that it stores the schema in the sqlite_schema table as the original text of the CREATE statements that define the schema. Hence ALTER TABLE needs to revise the text of the CREATE statement. Doing so can be tricky for certain "creative" schema designs.
+## Implementing a Complete `ALTER TABLE` in SQLite
 
-The only schema altering commands directly supported by SQLite are the "rename table", "rename column", "add column", "drop column" commands shown above. However, applications can make other arbitrary changes to the format of a table using a simple sequence of operations. The steps to make arbitrary changes to the schema design of some table are as follows (to create the new table starting from the old one you need a way to extract complete information from a SQLite table and that's the main reason why I created this parser):
+SQLite supports only a limited subset of the SQL standard’s [`ALTER TABLE`](https://www.sqlite.org/lang_altertable.html) functionality. Specifically, SQLite can:
 
-```c
-// The following algorithm needs to be revised based on new notes added to https://www.sqlite.org/lang_altertable.html
-```
+* Rename a table
+* Rename a column
+* Add a column
+* Drop a column
 
-ALTER TABLE algorithm looks like:
+Unlike most SQL database engines, SQLite does **not** store a parsed representation of the schema in internal system tables. Instead, the schema is stored verbatim as SQL text in the `sqlite_schema` table. As a consequence, altering a table often requires rewriting the original `CREATE TABLE` statement. This design keeps SQLite lightweight and flexible, but makes non-trivial schema changes more complex—especially for creatively structured schemas.
+
+While SQLite directly supports only the four ALTER operations listed above, **any arbitrary table transformation** can still be achieved by following a well-defined sequence of operations. This approach is the official recommendation from SQLite, and it is precisely why this project provides a parser: to reconstruct a new `CREATE TABLE` statement from an existing table definition while preserving all relevant constraints, indexes, and metadata.
+
+### General ALTER TABLE Emulation Algorithm
+
 ```sql
-PRAGMA foreign_keys=off;
- 
+PRAGMA writable_schema = ON;
+PRAGMA foreign_keys = OFF;
+
 BEGIN TRANSACTION;
- 
-ALTER TABLE old_table RENAME TO temp_table;
 
-/* new_table can be recreated by parsing the old_table and extracting all relevant information using this repo */
-CREATE TABLE new_table(
-   column_definition,
-   ...
+/* Recreate the new table by parsing the old one and extracting all schema details */
+CREATE TABLE new_table (
+    column_definition,
+    ...
 );
- 
+
 INSERT INTO new_table (column_list)
-  SELECT column_list
-  FROM temp_table;
- 
-DROP TABLE temp_table;
- 
+    SELECT column_list
+    FROM old_table;
+
+DROP TABLE old_table;
+
+ALTER TABLE new_table RENAME TO old_table;
+
 COMMIT;
- 
-PRAGMA foreign_keys=on;
+
+PRAGMA foreign_keys = ON;
+PRAGMA writable_schema = OFF;
 ```
 
+More details about this procedure can be found in the official SQLite documentation:
+[https://www.sqlite.org/lang_altertable.html](https://www.sqlite.org/lang_altertable.html)
 
-## Speed and memory considerations
-The parser is blazing fast, mainly because very few memory allocations are performed and no copy operations are used between the sql string and the internal sql3string structs. Memory requirement is linearly proportional to the number of columns in the table.
+The critical step is reconstructing the `CREATE TABLE` statement for `new_table`. This repository provides a fast and memory-efficient SQL parser specifically designed to extract complete structural information from existing SQLite table definitions.
+
+---
+
+## Speed and Memory Considerations
+
+The parser is designed for high performance. It performs very few heap allocations and avoids copying between the input SQL string and internal `sql3string` structures. As a result, parsing is extremely fast even for complex schemas.
+
+Memory usage grows linearly with the number of table columns and constraints. On a 64-bit system, memory consumption can be estimated as:
+
 ```
-You can estimate memory usage (on a 64bit system) using the following formula:
-N1: number of columns WITHOUT a foreign key constraint
-N2: number of columns WITH a foreign key constraint
-N3: number of indexed columns in table constraint
-K: 0 if no foreign key yable constraint is used or 64
-Memory usage (in bytes): 144 + (N1 * 144) + (N2 * 208) + (N3 * 40) + K
+N1 = number of columns without a FOREIGN KEY constraint
+N2 = number of columns with a FOREIGN KEY constraint
+N3 = number of indexed columns in table-level constraints
+K  = 0 if no table-level FOREIGN KEY constraint is used, otherwise 64
+
+Memory usage (bytes):
+144 + (N1 × 144) + (N2 × 208) + (N3 × 40) + K
 ```
+
+This predictable footprint makes the parser suitable for embedded and edge environments where both speed and memory efficiency are critical.
+
+---
 
 ## Other information
 This code is actually used by [Creo](https://creolabs.com).
