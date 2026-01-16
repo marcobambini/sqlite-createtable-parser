@@ -53,6 +53,11 @@ struct sql3foreignkey {
 	sql3fk_deftype      deferrable;
 };
 
+typedef struct {
+	sql3string name;                                // check constraint's name (can be NULL)
+	sql3string expr;                                // check constraint's expression
+} sql3checkconstraint;
+
 struct sql3column {
 	sql3string          name;                       // column name
 	sql3string          type;                       // column type (can be NULL)
@@ -69,8 +74,7 @@ struct sql3column {
 	sql3conflict_clause notnull_conflictclause;     // not null conflit clause
 	sql3string          unique_constraint_name;     // unique constraint name (can be NULL)
 	sql3conflict_clause unique_conflictclause;      // unique conflit clause
-	sql3string          check_constraint_name;      // check constraint name (can be NULL)
-	sql3string          check_expr;                 // check expression (can be NULL)
+	sql3checkconstraint check_constraint;           // check constraint
 	sql3string          default_constraint_name;    // default constraint name (can be NULL)
 	sql3string          default_expr;               // default expression (can be NULL)
 	sql3string          collate_constraint_name;    // collate constraint name (can be NULL)
@@ -960,8 +964,8 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 
 			case TOK_CHECK: {
 				// TODO Support multiple
-				column->check_constraint_name = constraint_name;
-				column->check_expr = sql3parse_expression(state);
+				column->check_constraint.name = constraint_name;
+				column->check_constraint.expr = sql3parse_expression(state);
 			} break;
 
 			case TOK_DEFAULT: {
@@ -1564,13 +1568,13 @@ sql3conflict_clause sql3column_unique_conflictclause (sql3column *column) {
 }
 
 sql3string* sql3column_check_constraint_name (sql3column* column) {
-	CHECK_STR(column->check_constraint_name);
-	return &column->check_constraint_name;
+	CHECK_STR(column->check_constraint.name);
+	return &column->check_constraint.name;
 }
 
 sql3string *sql3column_check_expr (sql3column *column) {
-	CHECK_STR(column->check_expr);
-	return &column->check_expr;
+	CHECK_STR(column->check_constraint.expr);
+	return &column->check_constraint.expr;
 }
 
 sql3string* sql3column_default_constraint_name (sql3column* column) {
