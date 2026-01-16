@@ -57,20 +57,27 @@ struct sql3column {
 	sql3string          name;                       // column name
 	sql3string          type;                       // column type (can be NULL)
 	sql3string          length;                     // column length (can be NULL)
-	sql3string          constraint_name;            // constraint name (can be NULL)
-    sql3string          comment;                    // column comment (can be NULL)
+	sql3string          comment;                    // column comment (can be NULL)
 	bool                is_primarykey;              // primary key flag
 	bool                is_autoincrement;           // autoincrement flag (only if is_primarykey is true)
 	bool                is_notnull;                 // not null flag
 	bool                is_unique;                  // is unique flag
+	sql3string          pk_constraint_name;         // primary key constraint name (can be NULL)
 	sql3order_clause	pk_order;                   // primary key order
 	sql3conflict_clause pk_conflictclause;          // primary key conflit clause
+	sql3string          notnull_constraint_name;    // not null constraint name (can be NULL)
 	sql3conflict_clause notnull_conflictclause;     // not null conflit clause
+	sql3string          unique_constraint_name;     // unique constraint name (can be NULL)
 	sql3conflict_clause unique_conflictclause;      // unique conflit clause
+	sql3string          check_constraint_name;      // check constraint name (can be NULL)
 	sql3string          check_expr;                 // check expression (can be NULL)
+	sql3string          default_constraint_name;    // default constraint name (can be NULL)
 	sql3string          default_expr;               // default expression (can be NULL)
+	sql3string          collate_constraint_name;    // collate constraint name (can be NULL)
 	sql3string          collate_name;               // collate name (can be NULL)
+	sql3string          foreignkey_constraint_name; // foreign key constraint name (can be NULL)
 	sql3foreignkey      *foreignkey_clause;         // foreign key clause (can be NULL)
+	sql3string          generated_constraint_name;  // generated constraint name (can be NULL)
 	sql3string          generated_expr;             // generated expression (can be NULL)
 	sql3gen_type        generated_type;             // generated type
 };
@@ -913,17 +920,19 @@ static sql3error_code sql3parse_column_type (sql3state *state, sql3column *colum
 static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column *column) {
 	while (token_is_column_constraint(sql3lexer_peek(state))) {
 		sql3token_t token = sql3lexer_next(state);
-		
+
 		// optional constraint name
+		sql3string constraint_name = {NULL, 0};
 		if (token == TOK_CONSTRAINT) {
 			token = sql3lexer_next(state);
 			if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
-			column->constraint_name = state->identifier;
+			constraint_name = state->identifier;
 			token = sql3lexer_next(state);
 		}
 		
 		switch (token) {
-			case TOK_PRIMARY:
+			case TOK_PRIMARY: {
+				column->pk_constraint_name = constraint_name;
 				token = sql3lexer_next(state);
 				if (token != TOK_KEY) return SQL3ERROR_SYNTAX;
 				column->is_primarykey = true;
@@ -933,50 +942,57 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 					sql3lexer_next(state);	// consume TOK_AUTOINCREMENT
 					column->is_autoincrement = true;
 				}
-				break;
-				
-			case TOK_NOT:
+			} break;
+
+			case TOK_NOT: {
+				column->notnull_constraint_name = constraint_name;
 				token = sql3lexer_next(state);
 				if (token != TOK_NULL) return SQL3ERROR_SYNTAX;
 				column->is_notnull = true;
 				if (sql3parse_optionalconflitclause(state, &column->notnull_conflictclause) != SQL3ERROR_NONE) return SQL3ERROR_SYNTAX;
-				break;
-				
-			case TOK_UNIQUE:
+			} break;
+
+			case TOK_UNIQUE: {
+				column->unique_constraint_name = constraint_name;
 				column->is_unique = true;
 				if (sql3parse_optionalconflitclause(state, &column->unique_conflictclause) != SQL3ERROR_NONE) return SQL3ERROR_SYNTAX;
-				break;
-				
-			case TOK_CHECK:
-                column->check_expr = sql3parse_expression(state);
-				break;
-				
-			case TOK_DEFAULT:
-                // signed-number (+/-) => numeric-literal
-                // literal-value
-                //      numeric-literal
-                //      string-literal
-                //      blob-literal (x/X'')
-                //      NULL
-                //      TRUE
-                //      FALSE
-                //      CURRENT_TIME
-                //      CURRENT_DATE
-                //      CURRENT_TIMESTAMP
-                // '(' expression ')'
-                
+			} break;
+
+			case TOK_CHECK: {
+				// TODO Support multiple
+				column->check_constraint_name = constraint_name;
+				column->check_expr = sql3parse_expression(state);
+			} break;
+
+			case TOK_DEFAULT: {
+				// signed-number (+/-) => numeric-literal
+				// literal-value
+				//      numeric-literal
+				//      string-literal
+				//      blob-literal (x/X'')
+				//      NULL
+				//      TRUE
+				//      FALSE
+				//      CURRENT_TIME
+				//      CURRENT_DATE
+				//      CURRENT_TIMESTAMP
+				// '(' expression ')'
+
+				column->default_constraint_name = constraint_name;
 				// expressions are extracted (not fully parsed) in this version
 				if (sql3lexer_peek(state) == TOK_OPEN_PARENTHESIS) column->default_expr = sql3parse_expression(state);
 				else column->default_expr = sql3parse_literal(state);
-				break;
-				
-			case TOK_COLLATE:
+			} break;
+
+			case TOK_COLLATE: {
+				column->collate_constraint_name = constraint_name;
 				token = sql3lexer_next(state);
 				if (token != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
 				column->collate_name = state->identifier;
-				break;
-				
+			} break;
+
 			case TOK_REFERENCES: {
+				column->foreignkey_constraint_name = constraint_name;
 				sql3foreignkey *fk = sql3parse_foreignkey_clause(state);
 				if (!fk) return SQL3ERROR_SYNTAX;
 				column->foreignkey_clause = fk;
@@ -984,6 +1000,7 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 
 			case TOK_GENERATED:
 			case TOK_AS: {
+				column->generated_constraint_name = constraint_name;
 				if (token == TOK_GENERATED) {
 					token = sql3lexer_next(state);
 					// 'column-constraint' syntax indicates that TOK_ALWAYS is
@@ -998,12 +1015,12 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 				column->generated_expr = sql3parse_expression(state);
 				if (sql3parse_optionalgentype(state, &column->generated_type) != SQL3ERROR_NONE) return SQL3ERROR_SYNTAX;
 			} break;
-				
+
 			default:
-                return SQL3ERROR_SYNTAX;
+				return SQL3ERROR_SYNTAX;
 		}
 	}
-	
+
 	return SQL3ERROR_NONE;
 }
 
@@ -1494,11 +1511,6 @@ sql3string *sql3column_length (sql3column *column) {
 	return &column->length;
 }
 
-sql3string *sql3column_constraint_name (sql3column *column) {
-	CHECK_STR(column->constraint_name);
-	return &column->constraint_name;
-}
-
 sql3string *sql3column_comment (sql3column *column) {
     CHECK_STR(column->comment);
     return &column->comment;
@@ -1520,6 +1532,11 @@ bool sql3column_is_unique (sql3column *column) {
 	return column->is_unique;
 }
 
+sql3string* sql3column_pk_constraint_name (sql3column* column) {
+	CHECK_STR(column->pk_constraint_name);
+	return &column->pk_constraint_name;
+}
+
 sql3order_clause sql3column_pk_order (sql3column *column) {
 	return column->pk_order;
 }
@@ -1528,12 +1545,27 @@ sql3conflict_clause sql3column_pk_conflictclause (sql3column *column) {
 	return column->pk_conflictclause;
 }
 
+sql3string *sql3column_notnull_constraint_name (sql3column *column) {
+	CHECK_STR(column->notnull_constraint_name);
+	return &column->notnull_constraint_name;
+}
+
 sql3conflict_clause sql3column_notnull_conflictclause (sql3column *column) {
 	return column->notnull_conflictclause;
 }
 
+sql3string* sql3column_unique_constraint_name (sql3column* column) {
+	CHECK_STR(column->unique_constraint_name);
+	return &column->unique_constraint_name;
+}
+
 sql3conflict_clause sql3column_unique_conflictclause (sql3column *column) {
 	return column->unique_conflictclause;
+}
+
+sql3string* sql3column_check_constraint_name (sql3column* column) {
+	CHECK_STR(column->check_constraint_name);
+	return &column->check_constraint_name;
 }
 
 sql3string *sql3column_check_expr (sql3column *column) {
@@ -1541,9 +1573,19 @@ sql3string *sql3column_check_expr (sql3column *column) {
 	return &column->check_expr;
 }
 
+sql3string* sql3column_default_constraint_name (sql3column* column) {
+	CHECK_STR(column->default_constraint_name);
+	return &column->default_constraint_name;
+}
+
 sql3string *sql3column_default_expr (sql3column *column) {
 	CHECK_STR(column->default_expr);
 	return &column->default_expr;
+}
+
+sql3string *sql3column_collate_constraint_name (sql3column *column) {
+	CHECK_STR(column->collate_constraint_name);
+	return &column->collate_constraint_name;
 }
 
 sql3string *sql3column_collate_name (sql3column *column) {
@@ -1551,8 +1593,18 @@ sql3string *sql3column_collate_name (sql3column *column) {
 	return &column->collate_name;
 }
 
+sql3string *sql3column_foreignkey_constraint_name (sql3column *column) {
+	CHECK_STR(column->foreignkey_constraint_name);
+	return &column->foreignkey_constraint_name;
+}
+
 sql3foreignkey *sql3column_foreignkey_clause (sql3column *column) {
 	return column->foreignkey_clause;
+}
+
+sql3string *sql3column_generated_constraint_name (sql3column *column) {
+	CHECK_STR(column->generated_constraint_name);
+	return &column->generated_constraint_name;
 }
 
 sql3string* sql3column_generated_expr (sql3column* column) {

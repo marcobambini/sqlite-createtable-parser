@@ -56,6 +56,11 @@ int main (void) {
         INTEGER, UNIQUE (flags /* Hello World*/, test) -- This is another table comment\n\
         );");
     test_case("CREATE TABLE Sales(Price INT, Qty INT, Total INT GENERATED ALWAYS AS (Price*Qty) VIRTUAL, Item TEXT)");
+    test_case("CREATE TABLE Constraints (\
+        PK  INTEGER CONSTRAINT 'PrimaryKey' PRIMARY KEY  CONSTRAINT 'NotNull' NOT NULL  CONSTRAINT 'Unique' UNIQUE\
+                    CONSTRAINT 'Check'      CHECK (PK>0) CONSTRAINT 'Default' DEFAULT 2 CONSTRAINT 'Collate' COLLATE NOCASE,\
+        FK  INTEGER CONSTRAINT 'ForeignKey' REFERENCES ForeignTable (Id),\
+        GEN INTEGER CONSTRAINT 'Generated' AS (abs(PK)))");
     
     // https://www.sqlite.org/lang_altertable.html
     test_case("ALTER TABLE foo RENAME TO bar");
