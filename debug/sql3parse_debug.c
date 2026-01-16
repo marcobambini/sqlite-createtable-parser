@@ -168,13 +168,17 @@ static void sql3column_dump (sql3column *column) {
 	if (clause != SQL3CONFLICT_NONE)
 		printf("Unique Conflict Cause: %s\n", sql3conflict_clause_str(clause));
 
-	// check constraint name
-	ptr = sql3column_check_constraint_name(column);
-	sql3string_dump(ptr, "Check Constraint Name");
+	// check constraints
+	size_t num_check_constraints = sql3column_num_check_constraints(column);
+	for (size_t i = 0; i < num_check_constraints; ++i) {
+		// check constraint name
+		ptr = sql3column_check_constraint_name(column, i);
+		sql3string_dump(ptr, "Check Constraint Name");
 
-	// check expr
-	ptr = sql3column_check_expr(column);
-	sql3string_dump(ptr, "Check Expression");
+		// check expr
+		ptr = sql3column_check_expr(column, i);
+		sql3string_dump(ptr, "Check Expression");
+	}
 
 	// default constraint name
 	ptr = sql3column_default_constraint_name(column);

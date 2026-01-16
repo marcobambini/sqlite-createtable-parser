@@ -74,7 +74,8 @@ struct sql3column {
 	sql3conflict_clause notnull_conflictclause;     // not null conflit clause
 	sql3string          unique_constraint_name;     // unique constraint name (can be NULL)
 	sql3conflict_clause unique_conflictclause;      // unique conflit clause
-	sql3checkconstraint check_constraint;           // check constraint
+	size_t              num_check_constraints;      // number of check constraints
+	sql3checkconstraint *check_constraints;         // array of check constraints (can be NULL)
 	sql3string          default_constraint_name;    // default constraint name (can be NULL)
 	sql3string          default_expr;               // default expression (can be NULL)
 	sql3string          collate_constraint_name;    // collate constraint name (can be NULL)
@@ -963,9 +964,13 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 			} break;
 
 			case TOK_CHECK: {
-				// TODO Support multiple
-				column->check_constraint.name = constraint_name;
-				column->check_constraint.expr = sql3parse_expression(state);
+				// add check constraint to check constraints array
+				++column->num_check_constraints;
+				column->check_constraints = SQL3REALLOC(column->check_constraints, sizeof(sql3checkconstraint) * column->num_check_constraints);
+				if (!column->check_constraints) return SQL3ERROR_MEMORY;
+				sql3checkconstraint *ptr = &column->check_constraints[column->num_check_constraints-1];
+				ptr->name = constraint_name;
+				ptr->expr = sql3parse_expression(state);
 			} break;
 
 			case TOK_DEFAULT: {
@@ -1416,6 +1421,9 @@ void sql3table_free (sql3table *table) {
 	// free columns
 	for (size_t i=0; i<table->num_columns; ++i) {
 		sql3column *column = table->columns[i];
+		if (column->check_constraints) {
+			SQL3FREE(column->check_constraints);
+		}
 		if (column->foreignkey_clause) {
 			if (column->foreignkey_clause->column_name) SQL3FREE(column->foreignkey_clause->column_name);
 			SQL3FREE(column->foreignkey_clause);
@@ -1536,7 +1544,7 @@ bool sql3column_is_unique (sql3column *column) {
 	return column->is_unique;
 }
 
-sql3string* sql3column_pk_constraint_name (sql3column* column) {
+sql3string *sql3column_pk_constraint_name (sql3column *column) {
 	CHECK_STR(column->pk_constraint_name);
 	return &column->pk_constraint_name;
 }
@@ -1558,7 +1566,7 @@ sql3conflict_clause sql3column_notnull_conflictclause (sql3column *column) {
 	return column->notnull_conflictclause;
 }
 
-sql3string* sql3column_unique_constraint_name (sql3column* column) {
+sql3string *sql3column_unique_constraint_name (sql3column *column) {
 	CHECK_STR(column->unique_constraint_name);
 	return &column->unique_constraint_name;
 }
@@ -1567,17 +1575,24 @@ sql3conflict_clause sql3column_unique_conflictclause (sql3column *column) {
 	return column->unique_conflictclause;
 }
 
-sql3string* sql3column_check_constraint_name (sql3column* column) {
-	CHECK_STR(column->check_constraint.name);
-	return &column->check_constraint.name;
+size_t sql3column_num_check_constraints (sql3column *column)
+{
+	return column->num_check_constraints;
 }
 
-sql3string *sql3column_check_expr (sql3column *column) {
-	CHECK_STR(column->check_constraint.expr);
-	return &column->check_constraint.expr;
+sql3string *sql3column_check_constraint_name (sql3column *column, size_t index) {
+	CHECK_IDX(index, column->num_check_constraints);
+	CHECK_STR(column->check_constraints[index].name);
+	return &(column->check_constraints[index].name);
 }
 
-sql3string* sql3column_default_constraint_name (sql3column* column) {
+sql3string *sql3column_check_expr (sql3column *column, size_t index) {
+	CHECK_IDX(index, column->num_check_constraints);
+	CHECK_STR(column->check_constraints[index].expr);
+	return &(column->check_constraints[index].expr);
+}
+
+sql3string *sql3column_default_constraint_name (sql3column *column) {
 	CHECK_STR(column->default_constraint_name);
 	return &column->default_constraint_name;
 }
@@ -1611,12 +1626,12 @@ sql3string *sql3column_generated_constraint_name (sql3column *column) {
 	return &column->generated_constraint_name;
 }
 
-sql3string* sql3column_generated_expr (sql3column* column) {
+sql3string *sql3column_generated_expr (sql3column *column) {
 	CHECK_STR(column->generated_expr);
 	return &column->generated_expr;
 }
 
-sql3gen_type sql3column_generated_type (sql3column* column) {
+sql3gen_type sql3column_generated_type (sql3column *column) {
 	return column->generated_type;
 }
 
