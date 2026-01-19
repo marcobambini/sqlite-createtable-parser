@@ -117,69 +117,105 @@ static void sql3column_dump (sql3column *column) {
 	// column name
 	sql3string *ptr = sql3column_name(column);
 	sql3string_dump(ptr, "Column Name");
-	
+
 	// column type
 	ptr = sql3column_type(column);
 	sql3string_dump(ptr, "Column Type");
-	
+
 	// column length
 	ptr = sql3column_length(column);
 	sql3string_dump(ptr, "Column Length");
-	
-	// constraint name
-	ptr = sql3column_constraint_name(column);
-	sql3string_dump(ptr, "Constraint Name");
-	
+
     // column comment
     ptr = sql3column_comment(column);
     if (ptr) sql3string_dump(ptr, "Column Comment");
-    
+
 	// flags
 	printf("Primary Key: %d\n", sql3column_is_primarykey(column));
 	printf("Autoincrement: %d\n", sql3column_is_autoincrement(column));
 	printf("Not NULL: %d\n", sql3column_is_notnull(column));
 	printf("Unique: %d\n", sql3column_is_unique(column));
-	
-	// enums
+
+	// primary key constraint name
+	ptr = sql3column_pk_constraint_name(column);
+	sql3string_dump(ptr, "Primary Key Constraint Name");
+
+	// primary key order
 	sql3order_clause order = sql3column_pk_order(column);
 	if (order != SQL3ORDER_NONE)
 		printf("Primary Key Order: %s\n", (order == SQL3ORDER_ASC) ? "ASC" : "DESC");
-	
+
+	// primary key conflict clause
 	sql3conflict_clause clause = sql3column_pk_conflictclause(column);
 	if (clause != SQL3CONFLICT_NONE)
 		printf("Primary Key Conflict Cause: %s\n", sql3conflict_clause_str(clause));
-	
+
+	// not null constraint name
+	ptr = sql3column_notnull_constraint_name(column);
+	sql3string_dump(ptr, "Not NULL Constraint Name");
+
+	// not null conflict clause
 	clause = sql3column_notnull_conflictclause(column);
 	if (clause != SQL3CONFLICT_NONE)
 		printf("Not NULL Conflict Cause: %s\n", sql3conflict_clause_str(clause));
-	
+
+	// unique constraint name
+	ptr = sql3column_unique_constraint_name(column);
+	sql3string_dump(ptr, "Unique Constraint Name");
+
+	// unique conflict clause
 	clause = sql3column_unique_conflictclause(column);
 	if (clause != SQL3CONFLICT_NONE)
 		printf("Unique Conflict Cause: %s\n", sql3conflict_clause_str(clause));
 
-	sql3gen_type gen_type = sql3column_generated_type(column);
-	if (gen_type != SQL3GENTYPE_NONE)
-		printf("Generated Type: %s\n", sql3generated_type_str(gen_type));
-	
-	// check expr
-	ptr = sql3column_check_expr(column);
-	sql3string_dump(ptr, "Check Expression");
-	
+	// check constraints
+	size_t num_check_constraints = sql3column_num_check_constraints(column);
+	for (size_t i = 0; i < num_check_constraints; ++i) {
+		// check constraint name
+		ptr = sql3column_check_constraint_name(column, i);
+		sql3string_dump(ptr, "Check Constraint Name");
+
+		// check expr
+		ptr = sql3column_check_expr(column, i);
+		sql3string_dump(ptr, "Check Expression");
+	}
+
+	// default constraint name
+	ptr = sql3column_default_constraint_name(column);
+	sql3string_dump(ptr, "Default Constraint Name");
+
 	// default expr
 	ptr = sql3column_default_expr(column);
 	sql3string_dump(ptr, "Default Expression");
-	
+
+	// collate constraint name
+	ptr = sql3column_collate_constraint_name(column);
+	sql3string_dump(ptr, "Collate Constraint Name");
+
 	// collate name
 	ptr = sql3column_collate_name(column);
 	sql3string_dump(ptr, "Collate");
-	
+
+	// foreign key constraint name
+	ptr = sql3column_foreignkey_constraint_name(column);
+	sql3string_dump(ptr, "Foreign Key Constraint Name");
+
 	// foreign key
 	sql3foreignkey *fk = sql3column_foreignkey_clause(column);
 	sql3foreignkey_dump(fk);
 
+	// generated constraint name
+	ptr = sql3column_generated_constraint_name(column);
+	sql3string_dump(ptr, "Generated Constraint Name");
+
 	// generated expr
 	ptr = sql3column_generated_expr(column);
 	sql3string_dump(ptr, "Generated Expression");
+
+	// generated type
+	sql3gen_type gen_type = sql3column_generated_type(column);
+	if (gen_type != SQL3GENTYPE_NONE)
+		printf("Generated Type: %s\n", sql3generated_type_str(gen_type));
 }
 
 static void sql3tableconstraint_dump (sql3tableconstraint *constraint) {

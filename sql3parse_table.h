@@ -140,22 +140,30 @@ sql3foreignkey *sql3table_constraint_foreignkey_clause (sql3tableconstraint *tco
 sql3string *sql3column_name (sql3column *column);
 sql3string *sql3column_type (sql3column *column);
 sql3string *sql3column_length (sql3column *column);
-sql3string *sql3column_constraint_name (sql3column *column);
 sql3string *sql3column_comment (sql3column *column);
 bool sql3column_is_primarykey (sql3column *column);
 bool sql3column_is_autoincrement (sql3column *column);
 bool sql3column_is_notnull (sql3column *column);
 bool sql3column_is_unique (sql3column *column);
+sql3string *sql3column_pk_constraint_name (sql3column *column);
 sql3order_clause sql3column_pk_order (sql3column *column);
 sql3conflict_clause sql3column_pk_conflictclause (sql3column *column);
+sql3string *sql3column_notnull_constraint_name (sql3column *column);
 sql3conflict_clause sql3column_notnull_conflictclause (sql3column *column);
+sql3string *sql3column_unique_constraint_name (sql3column *column);
 sql3conflict_clause sql3column_unique_conflictclause (sql3column *column);
-sql3string *sql3column_check_expr (sql3column *column);
+size_t sql3column_num_check_constraints (sql3column *column);
+sql3string *sql3column_check_constraint_name (sql3column *column, size_t index);
+sql3string *sql3column_check_expr (sql3column *column, size_t index);
+sql3string *sql3column_default_constraint_name (sql3column *column);
 sql3string *sql3column_default_expr (sql3column *column);
+sql3string *sql3column_collate_constraint_name (sql3column *column);
 sql3string *sql3column_collate_name (sql3column *column);
+sql3string *sql3column_foreignkey_constraint_name (sql3column *column);
 sql3foreignkey *sql3column_foreignkey_clause (sql3column *column);
-sql3string* sql3column_generated_expr (sql3column* column);
-sql3gen_type sql3column_generated_type (sql3column* column);
+sql3string *sql3column_generated_constraint_name (sql3column *column);
+sql3string *sql3column_generated_expr (sql3column *column);
+sql3gen_type sql3column_generated_type (sql3column *column);
 	
 // Foreign Key
 sql3string *sql3foreignkey_table (sql3foreignkey *fk);
