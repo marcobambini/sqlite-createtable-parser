@@ -156,7 +156,7 @@ static sql3string temp_identifier = {.ptr = "temp", .length = 4};
 #define PEEK                           (IS_EOF ? 0 : (unsigned char)state->buffer[state->offset])
 #define PEEKN(n)                       (CAN_PEEKN(n) ? (unsigned char)state->buffer[state->offset + (n)] : 0)
 #define NEXT                           (IS_EOF ? 0 : (unsigned char)state->buffer[state->offset++])
-#define SKIP_ONE                       ++state->offset;
+#define SKIP_ONE                       ++state->offset
 #define CHECK_STR(s)			        if (!s.ptr) return NULL
 #define CHECK_IDX(idx1,idx2)            if (idx1>=idx2) return NULL
 
@@ -343,7 +343,7 @@ static sql3token_t sql3lexer_keyword (const char *ptr, size_t length) {
 	return TOK_IDENTIFIER;
 }
 
-sql3token_t sql3lexer_comment (sql3state *state) {
+static sql3token_t sql3lexer_comment (sql3state *state) {
     sql3char c1_start = NEXT;
     sql3char c2_start = NEXT;
     bool is_c_comment = ((c1_start == '/') && (c2_start == '*'));
@@ -351,15 +351,17 @@ sql3token_t sql3lexer_comment (sql3state *state) {
     size_t offset = state->offset;
     const char *ptr = &state->buffer[offset];
     
+    bool terminated_by_eof = false;
     while (1) {
         sql3char c1 = NEXT;
-        
+
         // EOF case
         if (c1 == 0) {
             // SQL or C-style comments can be terminated by EOF
+            terminated_by_eof = true;
             break;
         }
-        
+
         // check for end-of-comment condition
         if (is_c_comment) {
             // c-style comments need two characters to check
@@ -373,20 +375,21 @@ sql3token_t sql3lexer_comment (sql3state *state) {
             if (symbol_is_newline(c1)) break;
         }
     }
-    
+
     // setup current comment
     if (state->comment) {
         size_t length = state->offset - offset;
-        length -= (is_c_comment) ? 2 : 1; // remove */ or newline
+        if (!terminated_by_eof) {
+            length -= (is_c_comment) ? 2 : 1; // remove */ or newline
+        }
         state->comment->ptr = ptr;
         state->comment->length = length;
-        //printf("Parsed comment: %.*s\n", (int)length, ptr);
     }
     
     return TOK_COMMENT;
 }
 
-sql3token_t sql3lexer_punctuation (sql3state *state) {
+static sql3token_t sql3lexer_punctuation (sql3state *state) {
 	sql3char c = NEXT;
 	
 	switch (c) {
@@ -400,7 +403,7 @@ sql3token_t sql3lexer_punctuation (sql3state *state) {
 	return TOK_ERROR;
 }
 
-sql3token_t sql3lexer_alpha (sql3state *state) {
+static sql3token_t sql3lexer_alpha (sql3state *state) {
 	size_t offset = state->offset;
 	
 	while (symbol_is_identifier(PEEK)) {
@@ -420,7 +423,7 @@ sql3token_t sql3lexer_alpha (sql3state *state) {
 	return TOK_IDENTIFIER;
 }
 
-sql3token_t sql3lexer_escape (sql3state *state) {
+static sql3token_t sql3lexer_escape (sql3state *state) {
 	sql3char c = 0, escaped = NEXT; // consume escaped char
 	if (escaped == '[') escaped = ']'; // mysql compatibility mode
 
@@ -493,7 +496,11 @@ static sql3string sql3parse_expression (sql3state *state) {
     // '(' expression ')'
     sql3lexer_checkskip(state);
     size_t offset = state->offset;
-    sql3char c = NEXT;      // '('
+    sql3char c = NEXT;
+    if (c != '(') {
+        sql3string empty = {NULL, 0};
+        return empty;
+    }
     uint32_t count = 1;     // count number of '('
     while (!IS_EOF) {
         c = NEXT;
@@ -557,7 +564,7 @@ static sql3error_code sql3parse_optionalgentype(sql3state* state, sql3gen_type* 
 
 static void sql3free_foreignkey(sql3foreignkey *fk) {
     if (!fk) return;
-    // shallow slices only; nothing to free inside currently
+    if (fk->column_name) SQL3FREE(fk->column_name);
     SQL3FREE(fk);
 }
 
@@ -582,8 +589,9 @@ static sql3foreignkey *sql3parse_foreignkey_clause (sql3state *state) {
 			
 			// add column name
 			++fk->num_columns;
-			fk->column_name = SQL3REALLOC(fk->column_name, sizeof(sql3string) * fk->num_columns);
-			if (!fk->column_name) goto error;
+			void *tmp = SQL3REALLOC(fk->column_name, sizeof(sql3string) * fk->num_columns);
+			if (!tmp) goto error;
+			fk->column_name = tmp;
 			fk->column_name[fk->num_columns-1] = state->identifier;
 			
 			token = sql3lexer_peek(state);
@@ -685,11 +693,11 @@ static sql3error_code sql3parse_table_options (sql3state *state) {
             state->table->is_withoutrowid = true;
         } else if (token == TOK_STRICT) {
             // STRICT table option
-            
+
             // consume STRICT
             sql3lexer_next(state);
-            
-            // set without rowid flag
+
+            // set strict flag
             state->table->is_strict = true;
         } else {
             return SQL3ERROR_NONE;
@@ -710,9 +718,12 @@ static sql3error_code sql3parse_table_options (sql3state *state) {
 
 static void sql3parse_table_constraint_free (sql3tableconstraint *c) {
     if (!c) return;
-    if (c->indexed_columns) SQL3FREE(c->indexed_columns);
-    if (c->foreignkey_name) SQL3FREE(c->foreignkey_name);
-    if (c->foreignkey_clause) sql3free_foreignkey(c->foreignkey_clause);
+    if ((c->type == SQL3TABLECONSTRAINT_PRIMARYKEY) || (c->type == SQL3TABLECONSTRAINT_UNIQUE)) {
+        if (c->indexed_columns) SQL3FREE(c->indexed_columns);
+    } else if (c->type == SQL3TABLECONSTRAINT_FOREIGNKEY) {
+        if (c->foreignkey_name) SQL3FREE(c->foreignkey_name);
+        if (c->foreignkey_clause) sql3free_foreignkey(c->foreignkey_clause);
+    }
     SQL3FREE(c);
 }
 
@@ -775,8 +786,9 @@ static sql3tableconstraint *sql3parse_table_constraint (sql3state *state) {
 			
 			// add indexed column
 			++constraint->num_indexed;
-			constraint->indexed_columns = SQL3REALLOC(constraint->indexed_columns, sizeof(sql3idxcolumn) * constraint->num_indexed);
-			if (!constraint->indexed_columns) goto error;
+			void *tmp = SQL3REALLOC(constraint->indexed_columns, sizeof(sql3idxcolumn) * constraint->num_indexed);
+			if (!tmp) goto error;
+			constraint->indexed_columns = tmp;
 			constraint->indexed_columns[constraint->num_indexed-1] = column;
 			
 			token = sql3lexer_peek(state);
@@ -811,8 +823,9 @@ static sql3tableconstraint *sql3parse_table_constraint (sql3state *state) {
 			
 			// add column name
 			++constraint->foreignkey_num;
-			constraint->foreignkey_name = SQL3REALLOC(constraint->foreignkey_name, sizeof(sql3string) * constraint->foreignkey_num);
-			if (!constraint->foreignkey_name) goto error;
+			void *tmp = SQL3REALLOC(constraint->foreignkey_name, sizeof(sql3string) * constraint->foreignkey_num);
+			if (!tmp) goto error;
+			constraint->foreignkey_name = tmp;
 			constraint->foreignkey_name[constraint->foreignkey_num-1] = state->identifier;
 			
 			token = sql3lexer_peek(state);
@@ -858,6 +871,7 @@ static sql3string sql3parse_literal (sql3state *state) {
         sql3char escaped = c;
         while (true) {
             c = NEXT;
+            if (c == 0) break;
             if (c == escaped) {
                 sql3char c2 = PEEK;
                 if (c2 != escaped) break;
@@ -868,7 +882,7 @@ static sql3string sql3parse_literal (sql3state *state) {
         // parse everything else up until a space
         while (true) {
             c = PEEK;
-            if (c == ' ' || c == ',' || c == ')') break;
+            if (c == 0 || c == ' ' || c == ',' || c == ')') break;
             c = NEXT;
         }
     }
@@ -966,8 +980,9 @@ static sql3error_code sql3parse_column_constraints (sql3state *state, sql3column
 			case TOK_CHECK: {
 				// add check constraint to check constraints array
 				++column->num_check_constraints;
-				column->check_constraints = SQL3REALLOC(column->check_constraints, sizeof(sql3checkconstraint) * column->num_check_constraints);
-				if (!column->check_constraints) return SQL3ERROR_MEMORY;
+				void *tmp = SQL3REALLOC(column->check_constraints, sizeof(sql3checkconstraint) * column->num_check_constraints);
+				if (!tmp) return SQL3ERROR_MEMORY;
+				column->check_constraints = tmp;
 				sql3checkconstraint *ptr = &column->check_constraints[column->num_check_constraints-1];
 				ptr->name = constraint_name;
 				ptr->expr = sql3parse_expression(state);
@@ -1058,9 +1073,16 @@ static sql3column *sql3parse_column (sql3state *state) {
 	}
     
 	return column;
-	
+
 error:
-	if (column) SQL3FREE(column);
+	if (column) {
+		if (column->check_constraints) SQL3FREE(column->check_constraints);
+		if (column->foreignkey_clause) {
+			if (column->foreignkey_clause->column_name) SQL3FREE(column->foreignkey_clause->column_name);
+			SQL3FREE(column->foreignkey_clause);
+		}
+		SQL3FREE(column);
+	}
 	return NULL;
 }
 
@@ -1172,7 +1194,9 @@ static sql3error_code sql3parse_alter (sql3state *state) {
             
             // add column to columns array
             ++table->num_columns;
-            do { void *__newp = SQL3REALLOC(table->columns, sizeof(sql3column*) * table->num_columns); if (!__newp) return SQL3ERROR_MEMORY; table->columns = (sql3column**)__newp; } while(0);
+            void *tmp = SQL3REALLOC(table->columns, sizeof(sql3column*) * table->num_columns);
+            if (!tmp) return SQL3ERROR_MEMORY;
+            table->columns = tmp;
             table->columns[table->num_columns-1] = column;
             
             break;
@@ -1261,8 +1285,9 @@ static sql3error_code sql3parse_create (sql3state *state) {
         
         // add column to columns array
         ++table->num_columns;
-        table->columns = SQL3REALLOC(table->columns, sizeof(sql3column*) * table->num_columns);
-        if (!table->columns) return SQL3ERROR_MEMORY;
+        void *tmp = SQL3REALLOC(table->columns, sizeof(sql3column*) * table->num_columns);
+        if (!tmp) return SQL3ERROR_MEMORY;
+        table->columns = tmp;
         table->columns[table->num_columns-1] = column;
         
         // check for optional comma
@@ -1293,10 +1318,11 @@ static sql3error_code sql3parse_create (sql3state *state) {
         sql3tableconstraint *constraint = sql3parse_table_constraint(state);
         if (!constraint) return SQL3ERROR_SYNTAX;
         
-        // add column to columns array
+        // add constraint to constraints array
         ++table->num_constraint;
-        table->constraints = SQL3REALLOC(table->constraints, sizeof(sql3tableconstraint**) * table->num_constraint);
-        if (!table->constraints) return SQL3ERROR_MEMORY;
+        void *tmp = SQL3REALLOC(table->constraints, sizeof(sql3tableconstraint*) * table->num_constraint);
+        if (!tmp) return SQL3ERROR_MEMORY;
+        table->constraints = tmp;
         table->constraints[table->num_constraint-1] = constraint;
         
         // check for optional comma
@@ -1413,6 +1439,7 @@ const char *sql3table_type_desc (sql3table *table) {
         case SQL3ALTER_ADD_COLUMN: return "ALTER TABLE ADD COLUMN";
         case SQL3ALTER_DROP_COLUMN: return "ALTER TABLE DROP COLUMN";
     }
+    return "UNKNOWN";
 }
 
 void sql3table_free (sql3table *table) {
@@ -1714,7 +1741,7 @@ sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *erro
 	if (err == SQL3ERROR_NONE) return table;
 	
 	// an error occurred
-	SQL3FREE(table);
+	sql3table_free(table);
 	return NULL;
 	
 error_memory:
