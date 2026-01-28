@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A90DE075211B942F00E14077 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = A90DE073211B942F00E14077 /* main.c */; };
-		A90DE076211B942F00E14077 /* sql3parse_debug.c in Sources */ = {isa = PBXBuildFile; fileRef = A90DE074211B942F00E14077 /* sql3parse_debug.c */; };
-		A9B040A11C870E750001459D /* sql3parse_table.c in Sources */ = {isa = PBXBuildFile; fileRef = A9B0409F1C870E750001459D /* sql3parse_table.c */; };
+		A97842412F29EB820082105E /* sql3parse_debug.c in Sources */ = {isa = PBXBuildFile; fileRef = A97842402F29EB820082105E /* sql3parse_debug.c */; };
+		A97842422F29EB820082105E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = A978423E2F29EB820082105E /* main.c */; };
+		A97842452F29EB8C0082105E /* sql3parse_table.c in Sources */ = {isa = PBXBuildFile; fileRef = A97842442F29EB8C0082105E /* sql3parse_table.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,11 +25,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		A90DE072211B942F00E14077 /* sql3parse_debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sql3parse_debug.h; path = debug/sql3parse_debug.h; sourceTree = "<group>"; };
-		A90DE073211B942F00E14077 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = debug/main.c; sourceTree = "<group>"; };
-		A90DE074211B942F00E14077 /* sql3parse_debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sql3parse_debug.c; path = debug/sql3parse_debug.c; sourceTree = "<group>"; };
-		A9B0409F1C870E750001459D /* sql3parse_table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sql3parse_table.c; sourceTree = SOURCE_ROOT; };
-		A9B040A01C870E750001459D /* sql3parse_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sql3parse_table.h; sourceTree = SOURCE_ROOT; };
+		A978423E2F29EB820082105E /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		A978423F2F29EB820082105E /* sql3parse_debug.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sql3parse_debug.h; sourceTree = "<group>"; };
+		A97842402F29EB820082105E /* sql3parse_debug.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = sql3parse_debug.c; sourceTree = "<group>"; };
+		A97842432F29EB8C0082105E /* sql3parse_table.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = sql3parse_table.h; path = ../sql3parse_table.h; sourceTree = SOURCE_ROOT; };
+		A97842442F29EB8C0082105E /* sql3parse_table.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = sql3parse_table.c; path = ../sql3parse_table.c; sourceTree = SOURCE_ROOT; };
 		A9B67B9E1C70691E00B772A9 /* CreateTableParser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CreateTableParser; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -47,11 +47,11 @@
 		A9B67B951C70691E00B772A9 = {
 			isa = PBXGroup;
 			children = (
-				A90DE073211B942F00E14077 /* main.c */,
-				A9B0409F1C870E750001459D /* sql3parse_table.c */,
-				A9B040A01C870E750001459D /* sql3parse_table.h */,
-				A90DE074211B942F00E14077 /* sql3parse_debug.c */,
-				A90DE072211B942F00E14077 /* sql3parse_debug.h */,
+				A978423E2F29EB820082105E /* main.c */,
+				A978423F2F29EB820082105E /* sql3parse_debug.h */,
+				A97842402F29EB820082105E /* sql3parse_debug.c */,
+				A97842432F29EB8C0082105E /* sql3parse_table.h */,
+				A97842442F29EB8C0082105E /* sql3parse_table.c */,
 				A9B67B9F1C70691E00B772A9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -121,9 +121,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A90DE076211B942F00E14077 /* sql3parse_debug.c in Sources */,
-				A90DE075211B942F00E14077 /* main.c in Sources */,
-				A9B040A11C870E750001459D /* sql3parse_table.c in Sources */,
+				A97842412F29EB820082105E /* sql3parse_debug.c in Sources */,
+				A97842422F29EB820082105E /* main.c in Sources */,
+				A97842452F29EB8C0082105E /* sql3parse_table.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
