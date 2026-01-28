@@ -69,11 +69,11 @@ struct sql3column {
 	bool                is_unique;                  // is unique flag
 	sql3string          pk_constraint_name;         // primary key constraint name (can be NULL)
 	sql3order_clause	pk_order;                   // primary key order
-	sql3conflict_clause pk_conflictclause;          // primary key conflit clause
+	sql3conflict_clause pk_conflictclause;          // primary key conflict clause
 	sql3string          notnull_constraint_name;    // not null constraint name (can be NULL)
-	sql3conflict_clause notnull_conflictclause;     // not null conflit clause
+	sql3conflict_clause notnull_conflictclause;     // not null conflict clause
 	sql3string          unique_constraint_name;     // unique constraint name (can be NULL)
-	sql3conflict_clause unique_conflictclause;      // unique conflit clause
+	sql3conflict_clause unique_conflictclause;      // unique conflict clause
 	size_t              num_check_constraints;      // number of check constraints
 	sql3checkconstraint *check_constraints;         // array of check constraints (can be NULL)
 	sql3string          default_constraint_name;    // default constraint name (can be NULL)
@@ -163,20 +163,24 @@ static sql3string temp_identifier = {.ptr = "temp", .length = 4};
 // MARK: - Public String Functions -
 
 const char *sql3string_ptr (sql3string *s, size_t *length) {
+	if (!s) { if (length) *length = 0; return NULL; }
 	if (length) *length = s->length;
 	return s->ptr;
 }
 
-const char *sql3string_cstring (sql3string *s) {
-	if (!s->ptr) return NULL;
+char *sql3string_alloc_cstring (sql3string *s) {
+	if (!s || !s->ptr) return NULL;
 	
 	char *ptr = (char *)SQL3MALLOC0(s->length+1);
 	if (!ptr) return NULL;
 	
 	memcpy(ptr, s->ptr, s->length);
-	return (const char *)ptr;
+	return ptr;
 }
 
+void sql3string_free_cstring (char *s) {
+    if (s) SQL3FREE(s);
+}
 
 // MARK: - Internal Utils -
 
@@ -494,17 +498,29 @@ static sql3token_t sql3lexer_peek (sql3state *state) {
 
 static sql3string sql3parse_expression (sql3state *state) {
     // '(' expression ')'
-    sql3lexer_checkskip(state);
+    sql3string empty = {NULL, 0};
+    if (!sql3lexer_checkskip(state)) return empty;
     size_t offset = state->offset;
     sql3char c = NEXT;
     if (c != '(') {
-        sql3string empty = {NULL, 0};
         return empty;
     }
     uint32_t count = 1;     // count number of '('
     while (!IS_EOF) {
         c = NEXT;
-        if (c == '(') ++count;
+        if (c == '\'' || c == '"') {
+            // skip string literal contents to avoid counting parens inside strings
+            sql3char quote = c;
+            while (!IS_EOF) {
+                c = NEXT;
+                if (c == 0) break;
+                if (c == quote) {
+                    if (PEEK == quote) { (void)NEXT; continue; } // doubled quote escape
+                    break;
+                }
+            }
+        }
+        else if (c == '(') ++count;
         else if (c == ')') { if (--count == 0) break; }
         else if (c == 0) break;
     }
@@ -861,9 +877,10 @@ static sql3string sql3parse_literal (sql3state *state) {
     //      CURRENT_TIME
     //      CURRENT_DATE
     //      CURRENT_TIMESTAMP
-    
-    sql3lexer_checkskip(state);
-    
+
+    sql3string empty = {NULL, 0};
+    if (!sql3lexer_checkskip(state)) return empty;
+
     size_t offset = state->offset;
     sql3char c = NEXT;
     if (c == '\'' || c == '"') {
@@ -878,18 +895,20 @@ static sql3string sql3parse_literal (sql3state *state) {
                 (void) NEXT;
             }
         }
+        // unterminated string literal
+        if (c != escaped) return empty;
     } else {
-        // parse everything else up until a space
+        // parse everything else up until whitespace or delimiter
         while (true) {
             c = PEEK;
-            if (c == 0 || c == ' ' || c == ',' || c == ')') break;
+            if (c == 0 || symbol_is_toskip(c) || symbol_is_newline(c) || c == ',' || c == ')' || c == ';') break;
             c = NEXT;
         }
     }
-    
+
     const char *ptr = &state->buffer[offset];
     size_t length = state->offset - offset;
-    
+
     sql3string result = {ptr, length};
     return result;
 }
@@ -1105,19 +1124,22 @@ static sql3error_code sql3parse_schema_identifier (sql3state *state) {
     if (sql3lexer_peek(state) == TOK_DOT) {
         // consume DOT
         sql3lexer_next(state);
-        
+
         // set schema name
         table->schema = (token == TOK_IDENTIFIER) ? state->identifier : temp_identifier;
-        
+
         // parse table name
         if (sql3lexer_next(state) != TOK_IDENTIFIER) return SQL3ERROR_SYNTAX;
         identifier = sql3string_ptr(&state->identifier, NULL);
         if (!identifier) return SQL3ERROR_SYNTAX;
+
+        // set table name (after DOT, always from parsed identifier)
+        table->name = state->identifier;
+    } else {
+        // set table name (no DOT, handle "temp" keyword as identifier)
+        table->name = (token == TOK_IDENTIFIER) ? state->identifier : temp_identifier;
     }
-    
-    // set table name
-    table->name = state->identifier;
-    
+
     return SQL3ERROR_NONE;
 }
 
@@ -1195,7 +1217,13 @@ static sql3error_code sql3parse_alter (sql3state *state) {
             // add column to columns array
             ++table->num_columns;
             void *tmp = SQL3REALLOC(table->columns, sizeof(sql3column*) * table->num_columns);
-            if (!tmp) return SQL3ERROR_MEMORY;
+            if (!tmp) {
+                --table->num_columns;
+                if (column->check_constraints) SQL3FREE(column->check_constraints);
+                if (column->foreignkey_clause) sql3free_foreignkey(column->foreignkey_clause);
+                SQL3FREE(column);
+                return SQL3ERROR_MEMORY;
+            }
             table->columns = tmp;
             table->columns[table->num_columns-1] = column;
             
@@ -1286,10 +1314,16 @@ static sql3error_code sql3parse_create (sql3state *state) {
         // add column to columns array
         ++table->num_columns;
         void *tmp = SQL3REALLOC(table->columns, sizeof(sql3column*) * table->num_columns);
-        if (!tmp) return SQL3ERROR_MEMORY;
+        if (!tmp) {
+            --table->num_columns;
+            if (column->check_constraints) SQL3FREE(column->check_constraints);
+            if (column->foreignkey_clause) sql3free_foreignkey(column->foreignkey_clause);
+            SQL3FREE(column);
+            return SQL3ERROR_MEMORY;
+        }
         table->columns = tmp;
         table->columns[table->num_columns-1] = column;
-        
+
         // check for optional comma
         token = sql3lexer_peek(state);
         if (token == TOK_COMMA) {
@@ -1321,7 +1355,11 @@ static sql3error_code sql3parse_create (sql3state *state) {
         // add constraint to constraints array
         ++table->num_constraint;
         void *tmp = SQL3REALLOC(table->constraints, sizeof(sql3tableconstraint*) * table->num_constraint);
-        if (!tmp) return SQL3ERROR_MEMORY;
+        if (!tmp) {
+            --table->num_constraint;
+            sql3parse_table_constraint_free(constraint);
+            return SQL3ERROR_MEMORY;
+        }
         table->constraints = tmp;
         table->constraints[table->num_constraint-1] = constraint;
         
@@ -1368,78 +1406,93 @@ static sql3error_code sql3parse (sql3state *state) {
 //MARK: - Public Table Functions -
 
 sql3string *sql3table_schema (sql3table *table) {
+	if (!table) return NULL;
 	CHECK_STR(table->schema);
 	return &table->schema;
 }
 
 sql3string *sql3table_name (sql3table *table) {
+	if (!table) return NULL;
 	CHECK_STR(table->name);
 	return &table->name;
 }
 
 sql3string *sql3table_comment (sql3table *table) {
-    CHECK_STR(table->comment);
-    return &table->comment;
+	if (!table) return NULL;
+	CHECK_STR(table->comment);
+	return &table->comment;
 }
 
 sql3string *sql3table_current_name (sql3table *table) {
-    CHECK_STR(table->current_name);
-    return &table->current_name;
+	if (!table) return NULL;
+	CHECK_STR(table->current_name);
+	return &table->current_name;
 }
 
 sql3string *sql3table_new_name (sql3table *table) {
-    CHECK_STR(table->new_name);
-    return &table->new_name;
+	if (!table) return NULL;
+	CHECK_STR(table->new_name);
+	return &table->new_name;
 }
 
 bool sql3table_is_temporary (sql3table *table) {
+	if (!table) return false;
 	return table->is_temporary;
 }
 
 bool sql3table_is_ifnotexists (sql3table *table) {
+	if (!table) return false;
 	return table->is_ifnotexists;
 }
 
 bool sql3table_is_withoutrowid (sql3table *table) {
+	if (!table) return false;
 	return table->is_withoutrowid;
 }
 
 bool sql3table_is_strict (sql3table *table) {
-    return table->is_strict;
+	if (!table) return false;
+	return table->is_strict;
 }
 
 size_t sql3table_num_columns (sql3table *table) {
+	if (!table) return 0;
 	return table->num_columns;
 }
 
 sql3column *sql3table_get_column (sql3table *table, size_t index) {
+	if (!table) return NULL;
 	CHECK_IDX(index, table->num_columns);
 	return table->columns[index];
 }
 
 size_t sql3table_num_constraints (sql3table *table) {
+	if (!table) return 0;
 	return table->num_constraint;
 }
 
 sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index) {
+	if (!table) return NULL;
 	CHECK_IDX(index, table->num_constraint);
 	return table->constraints[index];
 }
 
 sql3statement_type sql3table_type (sql3table *table) {
-    return table->type;
+	if (!table) return SQL3CREATE_UNKNOWN;
+	return table->type;
 }
 
 const char *sql3table_type_desc (sql3table *table) {
-    switch (table->type) {
-        case SQL3CREATE_UNKNOWN: return "UNKNOWN";
-        case SQL3CREATE_TABLE: return "CREATE TABLE";
-        case SQL3ALTER_RENAME_TABLE: return "ALTER TABLE RENAME";
-        case SQL3ALTER_RENAME_COLUMN: return "ALTER TABLE RENAME COLUMN";
-        case SQL3ALTER_ADD_COLUMN: return "ALTER TABLE ADD COLUMN";
-        case SQL3ALTER_DROP_COLUMN: return "ALTER TABLE DROP COLUMN";
-    }
-    return "UNKNOWN";
+	if (!table) return "UNKNOWN";
+	switch (table->type) {
+		case SQL3CREATE_UNKNOWN: return "UNKNOWN";
+		case SQL3CREATE_TABLE: return "CREATE TABLE";
+		case SQL3ALTER_RENAME_TABLE: return "ALTER TABLE RENAME";
+		case SQL3ALTER_RENAME_COLUMN: return "ALTER TABLE RENAME COLUMN";
+		case SQL3ALTER_ADD_COLUMN: return "ALTER TABLE ADD COLUMN";
+		case SQL3ALTER_DROP_COLUMN: return "ALTER TABLE DROP COLUMN";
+		default: return "UNKNOWN";
+	}
 }
 
 void sql3table_free (sql3table *table) {
@@ -1481,47 +1534,56 @@ void sql3table_free (sql3table *table) {
 // MARK: - Public Table Constraint Functions -
 
 sql3string *sql3table_constraint_name (sql3tableconstraint *tconstraint) {
+	if (!tconstraint) return NULL;
 	CHECK_STR(tconstraint->name);
 	return &tconstraint->name;
 }
 
 sql3constraint_type sql3table_constraint_type (sql3tableconstraint *tconstraint) {
+	if (!tconstraint) return SQL3TABLECONSTRAINT_PRIMARYKEY;
 	return tconstraint->type;
 }
 
 bool sql3table_constraint_is_autoincrement (sql3tableconstraint* tconstraint) {
+	if (!tconstraint) return false;
 	if (tconstraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) return false;
 	return tconstraint->is_autoincrement;
 }
 
 size_t sql3table_constraint_num_idxcolumns (sql3tableconstraint *tconstraint) {
+	if (!tconstraint) return 0;
 	if ((tconstraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) && (tconstraint->type != SQL3TABLECONSTRAINT_UNIQUE)) return 0;
 	return tconstraint->num_indexed;
 }
 
 sql3idxcolumn *sql3table_constraint_get_idxcolumn (sql3tableconstraint *tconstraint, size_t index) {
+	if (!tconstraint) return NULL;
 	if ((tconstraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) && (tconstraint->type != SQL3TABLECONSTRAINT_UNIQUE)) return NULL;
 	CHECK_IDX(index, tconstraint->num_indexed);
 	return &tconstraint->indexed_columns[index];
 }
 
 sql3conflict_clause sql3table_constraint_conflict_clause (sql3tableconstraint *tconstraint) {
+	if (!tconstraint) return SQL3CONFLICT_NONE;
 	if ((tconstraint->type != SQL3TABLECONSTRAINT_PRIMARYKEY) && (tconstraint->type != SQL3TABLECONSTRAINT_UNIQUE)) return SQL3CONFLICT_NONE;
 	return tconstraint->conflict_clause;
 }
 
 sql3string *sql3table_constraint_check_expr (sql3tableconstraint *tconstraint) {
+	if (!tconstraint) return NULL;
 	if (tconstraint->type != SQL3TABLECONSTRAINT_CHECK) return NULL;
 	CHECK_STR(tconstraint->check_expr);
 	return &tconstraint->check_expr;
 }
 
 size_t sql3table_constraint_num_fkcolumns (sql3tableconstraint *tconstraint) {
+	if (!tconstraint) return 0;
 	if (tconstraint->type != SQL3TABLECONSTRAINT_FOREIGNKEY) return 0;
 	return tconstraint->foreignkey_num;
 }
 
 sql3string *sql3table_constraint_get_fkcolumn (sql3tableconstraint *tconstraint, size_t index) {
+	if (!tconstraint) return NULL;
 	if (tconstraint->type != SQL3TABLECONSTRAINT_FOREIGNKEY) return NULL;
 	CHECK_IDX(index, tconstraint->foreignkey_num);
 	CHECK_STR(tconstraint->foreignkey_name[index]);
@@ -1529,6 +1591,7 @@ sql3string *sql3table_constraint_get_fkcolumn (sql3tableconstraint *tconstraint,
 }
 
 sql3foreignkey *sql3table_constraint_foreignkey_clause (sql3tableconstraint *tconstraint) {
+	if (!tconstraint) return NULL;
 	if (tconstraint->type != SQL3TABLECONSTRAINT_FOREIGNKEY) return NULL;
 	return tconstraint->foreignkey_clause;
 }
@@ -1536,180 +1599,215 @@ sql3foreignkey *sql3table_constraint_foreignkey_clause (sql3tableconstraint *tco
 // MARK: - Public Column Functions -
 
 sql3string *sql3column_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->name);
 	return &column->name;
 }
 
 sql3string *sql3column_type (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->type);
 	return &column->type;
 }
 
 sql3string *sql3column_length (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->length);
 	return &column->length;
 }
 
 sql3string *sql3column_comment (sql3column *column) {
-    CHECK_STR(column->comment);
-    return &column->comment;
+	if (!column) return NULL;
+	CHECK_STR(column->comment);
+	return &column->comment;
 }
 
 bool sql3column_is_primarykey (sql3column *column) {
+	if (!column) return false;
 	return column->is_primarykey;
 }
 
 bool sql3column_is_autoincrement (sql3column *column) {
+	if (!column) return false;
 	return column->is_autoincrement;
 }
 
 bool sql3column_is_notnull (sql3column *column) {
+	if (!column) return false;
 	return column->is_notnull;
 }
 
 bool sql3column_is_unique (sql3column *column) {
+	if (!column) return false;
 	return column->is_unique;
 }
 
 sql3string *sql3column_pk_constraint_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->pk_constraint_name);
 	return &column->pk_constraint_name;
 }
 
 sql3order_clause sql3column_pk_order (sql3column *column) {
+	if (!column) return SQL3ORDER_NONE;
 	return column->pk_order;
 }
 
 sql3conflict_clause sql3column_pk_conflictclause (sql3column *column) {
+	if (!column) return SQL3CONFLICT_NONE;
 	return column->pk_conflictclause;
 }
 
 sql3string *sql3column_notnull_constraint_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->notnull_constraint_name);
 	return &column->notnull_constraint_name;
 }
 
 sql3conflict_clause sql3column_notnull_conflictclause (sql3column *column) {
+	if (!column) return SQL3CONFLICT_NONE;
 	return column->notnull_conflictclause;
 }
 
 sql3string *sql3column_unique_constraint_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->unique_constraint_name);
 	return &column->unique_constraint_name;
 }
 
 sql3conflict_clause sql3column_unique_conflictclause (sql3column *column) {
+	if (!column) return SQL3CONFLICT_NONE;
 	return column->unique_conflictclause;
 }
 
-size_t sql3column_num_check_constraints (sql3column *column)
-{
+size_t sql3column_num_check_constraints (sql3column *column) {
+	if (!column) return 0;
 	return column->num_check_constraints;
 }
 
 sql3string *sql3column_check_constraint_name (sql3column *column, size_t index) {
+	if (!column) return NULL;
 	CHECK_IDX(index, column->num_check_constraints);
 	CHECK_STR(column->check_constraints[index].name);
 	return &(column->check_constraints[index].name);
 }
 
 sql3string *sql3column_check_expr (sql3column *column, size_t index) {
+	if (!column) return NULL;
 	CHECK_IDX(index, column->num_check_constraints);
 	CHECK_STR(column->check_constraints[index].expr);
 	return &(column->check_constraints[index].expr);
 }
 
 sql3string *sql3column_default_constraint_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->default_constraint_name);
 	return &column->default_constraint_name;
 }
 
 sql3string *sql3column_default_expr (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->default_expr);
 	return &column->default_expr;
 }
 
 sql3string *sql3column_collate_constraint_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->collate_constraint_name);
 	return &column->collate_constraint_name;
 }
 
 sql3string *sql3column_collate_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->collate_name);
 	return &column->collate_name;
 }
 
 sql3string *sql3column_foreignkey_constraint_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->foreignkey_constraint_name);
 	return &column->foreignkey_constraint_name;
 }
 
 sql3foreignkey *sql3column_foreignkey_clause (sql3column *column) {
+	if (!column) return NULL;
 	return column->foreignkey_clause;
 }
 
 sql3string *sql3column_generated_constraint_name (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->generated_constraint_name);
 	return &column->generated_constraint_name;
 }
 
 sql3string *sql3column_generated_expr (sql3column *column) {
+	if (!column) return NULL;
 	CHECK_STR(column->generated_expr);
 	return &column->generated_expr;
 }
 
 sql3gen_type sql3column_generated_type (sql3column *column) {
+	if (!column) return SQL3GENTYPE_NONE;
 	return column->generated_type;
 }
 
 // MARK: - Public Foreign Key Functions -
 
 sql3string *sql3foreignkey_table (sql3foreignkey *fk) {
+	if (!fk) return NULL;
 	CHECK_STR(fk->table);
 	return &fk->table;
 }
 
 size_t sql3foreignkey_num_columns (sql3foreignkey *fk) {
+	if (!fk) return 0;
 	return fk->num_columns;
 }
 
 sql3string *sql3foreignkey_get_column (sql3foreignkey *fk, size_t index) {
+	if (!fk) return NULL;
 	if (index >= fk->num_columns) return NULL;
 	CHECK_STR(fk->column_name[index]);
-	
 	return &fk->column_name[index];
 }
 
 sql3fk_action sql3foreignkey_ondelete_action (sql3foreignkey *fk) {
+	if (!fk) return SQL3FKACTION_NONE;
 	return fk->on_delete;
 }
 
 sql3fk_action sql3foreignkey_onupdate_action (sql3foreignkey *fk) {
+	if (!fk) return SQL3FKACTION_NONE;
 	return fk->on_update;
 }
 
 sql3string *sql3foreignkey_match (sql3foreignkey *fk) {
+	if (!fk) return NULL;
 	CHECK_STR(fk->match);
 	return &fk->match;
 }
 
 sql3fk_deftype sql3foreignkey_deferrable (sql3foreignkey *fk) {
+	if (!fk) return SQL3DEFTYPE_NONE;
 	return fk->deferrable;
 }
 
 // MARK: - Public Index Column Functions -
 
 sql3string *sql3idxcolumn_name (sql3idxcolumn *idxcolumn) {
+	if (!idxcolumn) return NULL;
 	CHECK_STR(idxcolumn->name);
 	return &idxcolumn->name;
 }
 
 sql3string *sql3idxcolumn_collate (sql3idxcolumn *idxcolumn) {
+	if (!idxcolumn) return NULL;
 	CHECK_STR(idxcolumn->collate_name);
 	return &idxcolumn->collate_name;
 }
 
 sql3order_clause sql3idxcolumn_order (sql3idxcolumn *idxcolumn) {
+	if (!idxcolumn) return SQL3ORDER_NONE;
 	return idxcolumn->order;
 }
 
@@ -1745,7 +1843,6 @@ sql3table *sql3parse_table (const char *sql, size_t length, sql3error_code *erro
 	return NULL;
 	
 error_memory:
-	if (table) SQL3FREE(table);
 	if (error) *error = SQL3ERROR_MEMORY;
 	return NULL;
 }

@@ -181,7 +181,8 @@ sql3order_clause sql3idxcolumn_order (sql3idxcolumn *idxcolumn);
 	
 // String Utils
 const char *sql3string_ptr (sql3string *s, size_t *length);
-const char *sql3string_cstring (sql3string *s);
+char *sql3string_alloc_cstring (sql3string *s);
+void sql3string_free_cstring (char *s);
 	
 #ifdef __cplusplus
 }  // end of the 'extern "C"' block
