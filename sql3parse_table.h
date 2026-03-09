@@ -4,11 +4,24 @@
 //  Created by Marco Bambini on 14/02/16.
 //
 
-// Memory requirements on 64bit system:
-// number of columns WITHOUT a foreign key constraints => N1
-// number of columns WITH a foreign key constraints => N2
-// if table has a foreign key constraint then add 64 + (40 for each idx column)
-// Total memory = 144 + (N1 * 144) + (N2 * 208) + table_constraint_size
+// Memory requirements on a 64-bit system:
+// N1 = number of columns WITHOUT a FOREIGN KEY constraint
+// N2 = number of columns WITH a FOREIGN KEY constraint
+// N3 = number of table-level constraints
+// N4 = total indexed columns across all table-level PK/UNIQUE constraints
+// N5 = total FOREIGN KEY columns across all table-level FK constraints
+// K  = number of table-level FK constraints (each adds 64 bytes for its foreignkey clause)
+//
+// Total memory (bytes) =
+//   128                   (sql3table)
+//   + (N1 + N2) * 8       (column pointer array)
+//   + N1 * 288            (sql3column without FK)
+//   + N2 * (288 + 64)     (sql3column with FK + sql3foreignkey)
+//   + N3 * 8              (constraint pointer array)
+//   + N3 * 88             (sql3tableconstraint)
+//   + N4 * 40             (sql3idxcolumn in PK/UNIQUE constraints)
+//   + N5 * 16             (sql3string in FK constraint column names)
+//   + K  * 64             (sql3foreignkey in table-level FK constraints)
 
 #ifndef __SQL3PARSE_TABLE__
 #define __SQL3PARSE_TABLE__
@@ -38,7 +51,7 @@ typedef struct sql3idxcolumn        sql3idxcolumn;
 typedef struct sql3foreignkey       sql3foreignkey;
 typedef struct sql3tableconstraint  sql3tableconstraint;
 typedef struct sql3string           sql3string;
-typedef uint16_t                    sql3char;
+typedef unsigned char               sql3char;
 	
 typedef enum {
 	SQL3ERROR_NONE,

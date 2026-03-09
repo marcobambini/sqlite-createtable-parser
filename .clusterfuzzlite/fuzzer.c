@@ -22,8 +22,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     sql3error_code error;
     sql3table *result = sql3parse_table((const char *)input, size, &error);
-    
+    if (result) sql3table_free(result);
+
     free(input);
-    
+
     return 0;
 }

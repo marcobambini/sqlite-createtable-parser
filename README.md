@@ -1,10 +1,11 @@
 ## SQLite CREATE and ALTER TABLE Parser
-A parser for SQLite [create table](https://www.sqlite.org/lang_createtable.html) and [alter table](https://www.sqlite.org/lang_altertable.html) sql statements.
+A parser for SQLite [CREATE TABLE](https://www.sqlite.org/lang_createtable.html) and [ALTER TABLE](https://www.sqlite.org/lang_altertable.html) statements.
 
-* Extremely fast parser with no memory copy overhead
-* MIT licensed with no dependencies (just drop the C file into your project)
+* Extremely fast zero-copy parser (strings point directly into the input SQL buffer)
+* MIT licensed with no dependencies (just drop the two files into your project)
 * Never recurses or allocates more memory than it needs
-* Very simple API 
+* Simple opaque-type API with accessor functions
+* Supports STRICT tables, generated columns, and all constraint types
 
 ## Motivation
 [SQLite](https://www.sqlite.org/) is a very powerful software but it lacks an easy way to extract complete information about tables and columns constraints. This drawback in addition to the lack of full ALTER TABLE support makes alterring a table a very hard task. The built-in sqlite pragmas provide incomplete information and a manual parsing is required in order to extract all the metadata from a table.
@@ -47,12 +48,14 @@ sql3string          *sql3table_comment (sql3table *table);
 bool                sql3table_is_temporary (sql3table *table);
 bool                sql3table_is_ifnotexists (sql3table *table);
 bool                sql3table_is_withoutrowid (sql3table *table);
+bool                sql3table_is_strict (sql3table *table);
 size_t              sql3table_num_columns (sql3table *table);
 sql3column          *sql3table_get_column (sql3table *table, size_t index);
 size_t              sql3table_num_constraints (sql3table *table);
 sql3tableconstraint *sql3table_get_constraint (sql3table *table, size_t index);
 void                sql3table_free (sql3table *table);
 sql3statement_type  sql3table_type (sql3table *table);
+const char          *sql3table_type_desc (sql3table *table);
 sql3string          *sql3table_current_name (sql3table *table);
 sql3string          *sql3table_new_name (sql3table *table);
 
@@ -120,53 +123,58 @@ void                sql3string_free_cstring (char *s);
 ```
 
 ## Example
-Dump to stdout complete table information:
-```c
-// all the necessary code is in sql3parse_debug.h/.c
-void table_dump (sql3table *table) {
-    if (!table) return;
-    
-    // schema name
-    sql3string *ptr = sql3table_schema(table);
-    sql3string_dump(ptr, "Schema Name");
-    
-    // table name
-    ptr = sql3table_name(table);
-    sql3string_dump(ptr, "Table Name");
 
-    // table comment
-    ptr = sql3table_comment(table);
-    if (ptr) sql3string_dump(ptr, "Table Comment");
-    
-    // table flags
-    printf("Temporary: %d\n", sql3table_is_temporary(table));
-    printf("If Not Exists: %d\n", sql3table_is_ifnotexists(table));
-    printf("Without RowID: %d\n", sql3table_is_withoutrowid(table));
-    
-    // loop to print complete columns info
-    size_t num_columns = sql3table_num_columns(table);
-    printf("Num Columns: %zu\n", num_columns);
-    for (size_t i=0; i<num_columns; ++i) {
-        sql3column *column = sql3table_get_column(table, i);
-        printf("\n== COLUMN %zu ==\n", i);
-        sql3column_dump(column);
-    }
-    
-    // loop to print complete table constraints
-    size_t num_constraint = sql3table_num_constraints(table);
-    printf("\nNum Table Constraint: %zu\n", num_constraint);
-    for (size_t i=0; i<num_constraint; ++i) {
-        sql3tableconstraint *constraint = sql3table_get_constraint(table, i);
-        printf("\n== TABLE CONSTRAINT %zu ==\n", i);
-        sql3tableconstraint_dump(constraint);
-    }
-    printf("\n");
+Parse a CREATE TABLE statement and inspect it:
+```c
+#include "sql3parse_table.h"
+
+const char *sql = "CREATE TABLE IF NOT EXISTS main.t1 ("
+                  "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                  "name TEXT NOT NULL DEFAULT ‘’, "
+                  "amount REAL CHECK(amount >= 0)"
+                  ") STRICT, WITHOUT ROWID;";
+
+sql3error_code error;
+sql3table *table = sql3parse_table(sql, 0, &error);
+if (!table || error != SQL3ERROR_NONE) {
+    printf("Parse error: %d\n", error);
+    return;
 }
+
+// statement type
+printf("Type: %s\n", sql3table_type_desc(table));
+
+// table name and schema
+size_t len;
+const char *name = sql3string_ptr(sql3table_name(table), &len);
+printf("Table: %.*s\n", (int)len, name);
+
+// table flags
+printf("Temporary: %d\n", sql3table_is_temporary(table));
+printf("If Not Exists: %d\n", sql3table_is_ifnotexists(table));
+printf("Without RowID: %d\n", sql3table_is_withoutrowid(table));
+printf("Strict: %d\n", sql3table_is_strict(table));
+
+// columns
+size_t num_columns = sql3table_num_columns(table);
+for (size_t i = 0; i < num_columns; ++i) {
+    sql3column *col = sql3table_get_column(table, i);
+    const char *col_name = sql3string_ptr(sql3column_name(col), &len);
+    const char *col_type = sql3string_ptr(sql3column_type(col), &len);
+    printf("Column %zu: %.*s\n", i, (int)len, col_name);
+}
+
+// table-level constraints
+size_t num_constraints = sql3table_num_constraints(table);
+for (size_t i = 0; i < num_constraints; ++i) {
+    sql3tableconstraint *tc = sql3table_get_constraint(table, i);
+    printf("Constraint %zu: type=%d\n", i, sql3table_constraint_type(tc));
+}
+
+sql3table_free(table);
 ```
 
-Here’s a cleaner, more precise, and more professional rewrite of your markdown, with improved flow, correctness, and clarity while preserving your intent and technical tone.
-
----
+A more complete dump utility is available in `test/sql3parse_debug.h` and `test/sql3parse_debug.c`.
 
 ## Implementing a Complete `ALTER TABLE` in SQLite
 
@@ -223,20 +231,44 @@ The parser is designed for high performance. It performs very few heap allocatio
 Memory usage grows linearly with the number of table columns and constraints. On a 64-bit system, memory consumption can be estimated as:
 
 ```
-N1 = number of columns without a FOREIGN KEY constraint
-N2 = number of columns with a FOREIGN KEY constraint
-N3 = number of indexed columns in table-level constraints
-K  = 0 if no table-level FOREIGN KEY constraint is used, otherwise 64
+N1 = number of columns WITHOUT a FOREIGN KEY constraint
+N2 = number of columns WITH a FOREIGN KEY constraint
+N3 = number of table-level constraints
+N4 = total indexed columns across all table-level PK/UNIQUE constraints
+N5 = total FOREIGN KEY columns across all table-level FK constraints
+K  = number of table-level FK constraints
 
-Memory usage (bytes):
-144 + (N1 × 144) + (N2 × 208) + (N3 × 40) + K
+Memory usage (bytes) =
+  128                    (sql3table)
+  + (N1 + N2) × 8       (column pointer array)
+  + N1 × 288            (sql3column without FK)
+  + N2 × (288 + 64)     (sql3column with FK + sql3foreignkey)
+  + N3 × 8              (constraint pointer array)
+  + N3 × 88             (sql3tableconstraint)
+  + N4 × 40             (sql3idxcolumn in PK/UNIQUE constraints)
+  + N5 × 16             (sql3string in FK constraint column names)
+  + K  × 64             (sql3foreignkey in table-level FK constraints)
 ```
 
-This predictable footprint makes the parser suitable for embedded and edge environments where both speed and memory efficiency are critical.
+This predictable footprint makes the parser suitable for embedded and resource-constrained environments.
 
 ---
 
-## Other information
-This code is actually used by [Creo](https://creolabs.com).
+## Supported Statements
 
-If you are interested in my others GitHub projects then take a look at the [Gravity](https://github.com/marcobambini/gravity) programming language.
+**CREATE TABLE** — full support including:
+* Column constraints: PRIMARY KEY, NOT NULL, UNIQUE, CHECK, DEFAULT, COLLATE, FOREIGN KEY, GENERATED ALWAYS AS
+* Table-level constraints: PRIMARY KEY, UNIQUE, CHECK, FOREIGN KEY
+* STRICT and WITHOUT ROWID table options
+* IF NOT EXISTS, TEMPORARY tables, schema-qualified names
+* Comment extraction (SQL comments attached to columns/tables)
+
+**ALTER TABLE** — all four SQLite ALTER forms:
+* RENAME TABLE, RENAME COLUMN, ADD COLUMN, DROP COLUMN
+
+**Not supported** (by design): `CREATE TABLE ... AS SELECT` (rarely needed for schema introspection).
+
+## Other Information
+This code is used by [Creo](https://creolabs.com).
+
+If you are interested in other projects, take a look at the [Gravity](https://github.com/marcobambini/gravity) programming language.
